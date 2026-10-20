@@ -26,7 +26,7 @@ impl Rect {
     }
 }
 
-/// 一块显示器（物理像素）
+/// A display in desktop units: physical pixels on Windows, logical points on macOS.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Screen {
     /// 整块屏幕
@@ -51,14 +51,30 @@ pub fn layout(screens: &[Screen], fullscreen: &[Rect]) -> Option<Layout> {
     Some(Layout { rect, screens })
 }
 
+/// macOS renders through a viewport on one display. Keep the current viewport in
+/// gaps between displays; choose another only when the pet enters its monitor.
+/// If a display disappears or becomes fullscreen, fall back to an available one.
+#[cfg(any(target_os = "macos", test))]
+pub fn viewport(screens: &[Screen], current: Rect, anchor: Option<(f64, f64)>) -> Rect {
+    anchor
+        .and_then(|(x, y)| {
+            screens.iter().find(|s| {
+                x >= s.monitor.left as f64
+                    && x < s.monitor.right as f64
+                    && y >= s.monitor.top as f64
+                    && y < s.monitor.bottom as f64
+            })
+        })
+        .or_else(|| screens.iter().find(|s| s.work == current))
+        .or_else(|| screens.iter().find(|s| s.primary))
+        .or_else(|| screens.first())
+        .map_or(current, |s| s.work)
+}
+
 /// 覆盖层从 (old, old_scale) 挪到 (new, new_scale) 后，同一个屏幕上的点 CSS 坐标怎么变：
 /// 新 = 旧 × k + (dx, dy)
 pub fn remap(old: Rect, old_scale: f64, new: Rect, new_scale: f64) -> (f64, f64, f64) {
-    (
-        old_scale / new_scale,
-        (old.left - new.left) as f64 / new_scale,
-        (old.top - new.top) as f64 / new_scale,
-    )
+    (old_scale / new_scale, (old.left - new.left) as f64 / new_scale, (old.top - new.top) as f64 / new_scale)
 }
 
 /// 一个顶层窗口。`platform` 表示它的顶边可以站人；不能站的窗口仍然参与遮挡计算。
@@ -180,6 +196,22 @@ mod tests {
         assert_eq!(only_main.screens, vec![main]);
 
         assert!(layout(&[main, side], &[main.monitor, side.monitor]).is_none());
+    }
+
+    #[test]
+    fn viewport_follows_pet_between_stacked_mixed_density_displays() {
+        let mac = screen(0, 0, 1728, 1117, 61, true);
+        let lg = screen(-868, -1440, 2572, 0, 0, false);
+        let screens = [mac, lg];
+        assert_eq!(viewport(&screens, mac.work, Some((800.0, -500.0))), lg.work);
+        assert_eq!(viewport(&screens, lg.work, Some((800.0, 500.0))), mac.work);
+        // Gaps do not cause a flip back to the primary screen.
+        assert_eq!(viewport(&screens, lg.work, Some((-500.0, 500.0))), lg.work);
+        // Unplugging or fullscreen exclusion recovers the remaining screen.
+        assert_eq!(viewport(&[mac], lg.work, Some((800.0, -500.0))), mac.work);
+        assert_eq!(viewport(&[lg], mac.work, Some((800.0, 500.0))), lg.work);
+        let (k, dx, dy) = remap(mac.work, 1.0, lg.work, 1.0);
+        assert_eq!((k, 800.0 * k + dx, -500.0 * k + dy), (1.0, 1668.0, 940.0));
     }
 
     #[test]

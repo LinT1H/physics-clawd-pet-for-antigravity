@@ -240,6 +240,7 @@ export interface ScreenInfo extends Bounds {
 export interface ScreensMsg {
   screens: ScreenInfo[];
   remap: { k: number; dx: number; dy: number } | null;
+  revision?: number;
 }
 
 /** 被追踪窗口的一次位置采样（覆盖层 CSS 像素） */
@@ -346,6 +347,7 @@ export async function createOverlayHost(): Promise<OverlayHost> {
   let cur: Vec2 | null = null;
   let hover = false;
   let lastHits: HitRect[] = [];
+  let geometryRevision = 0;
   // Rust 时钟 = performance.now() - offset；取观测到的最小延迟作为偏移
   let offset = Infinity;
   const platformCbs: ((list: Platform[]) => void)[] = [];
@@ -358,7 +360,12 @@ export async function createOverlayHost(): Promise<OverlayHost> {
     listen<Vec2>('desk-cursor', (e) => (cur = e.payload)),
     listen<boolean>('desk-hover', (e) => (hover = e.payload)),
     listen<Platform[]>('desk-platforms', (e) => platformCbs.forEach((cb) => cb(e.payload))),
-    listen<ScreensMsg>('desk-screens', (e) => screensCbs.forEach((cb) => cb(e.payload))),
+    listen<ScreensMsg>('desk-screens', (e) => {
+      geometryRevision = e.payload.revision ?? 0;
+      lastHits = [];
+      cur = null;
+      screensCbs.forEach((cb) => cb(e.payload));
+    }),
     listen<CarrierSample>('desk-carrier', (e) => {
       offset = Math.min(offset, performance.now() - e.payload.t);
       carrierCbs.forEach((cb) => cb(e.payload));
@@ -375,7 +382,7 @@ export async function createOverlayHost(): Promise<OverlayHost> {
     setHitRects(list) {
       if (sameRects(list, lastHits)) return;
       lastHits = list;
-      void invoke('desk_set_hits', { rects: list });
+      void invoke('desk_set_hits', { rects: list, revision: geometryRevision });
     },
     setDragging: (on) => void invoke('desk_set_dragging', { on }),
     setCarrier: (id) => void invoke('desk_set_carrier', { id }),

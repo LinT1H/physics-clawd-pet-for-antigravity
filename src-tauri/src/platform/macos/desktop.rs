@@ -1,22 +1,17 @@
 //! 桌面状态查询（macOS）：光标、可见窗口、工作区、全屏检测。
 //! 全部只读，不移动、不修改任何其他程序的窗口。
 //!
-//! 坐标和 Tauri 一致："物理像素" = 点 × 主屏的 backingScaleFactor，原点在主屏左上角。
-//! CoreGraphics 给的都是这种左上角原点的点坐标，乘上主屏缩放就行；
-//! 宠物只在主屏上活动，别的屏缩放不一样也没关系。窗口 id 是 CGWindowID。
-//!
-//! 为什么不跨屏：macOS 默认"每块显示器有单独的空间"，一个窗口只会出现在一块屏幕上，
-//! 铺满几块屏幕的覆盖层在这儿行不通。
+//! Desktop geometry uses global macOS points, independent of each display's backing scale.
+//! The renderer uses devicePixelRatio for sharp output; it must not change desktop geometry.
+//! A single screen-sized overlay follows the pet, so separate Spaces do not clip a spanning window.
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 
 use objc2_app_kit::NSScreen;
 use objc2_core_foundation::{CFArray, CFBoolean, CFDictionary, CFNumber, CFRetained, CFString, CFType, CGRect};
 use objc2_core_graphics::{
-    kCGWindowAlpha, kCGWindowBounds, kCGWindowIsOnscreen, kCGWindowLayer, kCGWindowNumber, kCGWindowOwnerPID,
-    CGDisplayBounds, CGEvent, CGMainDisplayID, CGRectMakeWithDictionaryRepresentation, CGWindowListCopyWindowInfo,
-    CGWindowListOption,
+    kCGWindowAlpha, kCGWindowBounds, kCGWindowIsOnscreen, kCGWindowLayer, kCGWindowNumber, kCGWindowOwnerPID, CGEvent,
+    CGRectMakeWithDictionaryRepresentation, CGWindowListCopyWindowInfo, CGWindowListOption,
 };
 
 use crate::desktop::{Rect, Screen, WinInfo};
@@ -26,41 +21,22 @@ const NORMAL_LAYER: i64 = 0;
 /// 程序坞的层级（kCGDockWindowLevel）。比它高的是程序坞、菜单栏、通知、弹出菜单之类
 const DOCK_LAYER: i64 = 20;
 
-/// 主屏缩放的缓存：光标每帧都要换算，不能每次都跑到主线程去问 NSScreen
-static SCALE: AtomicU64 = AtomicU64::new(0);
-
-/// 主屏（有菜单栏的那块）的工作区（去掉菜单栏和程序坞，物理像素）和缩放，算法和 Tauri 的 work_area 一样。
-/// NSScreen 只能在主线程用：不在主线程就同步派过去（观察线程一秒才问一次）。
-fn primary_screen() -> Option<(Rect, f64)> {
-    let (r, s) = dispatch2::run_on_main(|mtm| {
-        let screen = NSScreen::screens(mtm).firstObject()?;
-        let (full, vis) = (screen.frame(), screen.visibleFrame());
-        // AppKit 是左下角原点、y 朝上：换成左上角原点
-        let x = vis.origin.x - full.origin.x;
-        let y = (full.origin.y + full.size.height) - (vis.origin.y + vis.size.height);
-        Some((CGRect::new(objc2_core_foundation::CGPoint::new(x, y), vis.size), screen.backingScaleFactor()))
-    })?;
-    SCALE.store(s.to_bits(), Ordering::Relaxed);
-    let (left, top) = ((r.origin.x * s).round() as i32, (r.origin.y * s).round() as i32);
-    Some((
-        Rect {
-            left,
-            top,
-            right: left + (r.size.width * s).round() as i32,
-            bottom: top + (r.size.height * s).round() as i32,
-        },
-        s,
-    ))
+/// Desktop units per CSS pixel. AppKit, CoreGraphics and accessibility all use points.
+pub(super) fn scale() -> f64 {
+    1.0
 }
 
-pub(super) fn scale() -> f64 {
-    match f64::from_bits(SCALE.load(Ordering::Relaxed)) {
-        s if s > 0.0 => s,
-        _ => primary_screen().map_or(1.0, |(_, s)| s),
+/// Convert an AppKit bottom-left rectangle into global top-left desktop coordinates.
+fn desktop_rect(r: CGRect, primary_top: f64) -> Rect {
+    Rect {
+        left: r.origin.x.round() as i32,
+        top: (primary_top - r.origin.y - r.size.height).round() as i32,
+        right: (r.origin.x + r.size.width).round() as i32,
+        bottom: (primary_top - r.origin.y).round() as i32,
     }
 }
 
-/// 点 → 物理像素
+/// Convert CoreGraphics/accessibility rectangles to desktop units (points on macOS).
 pub(super) fn to_rect(b: CGRect, s: f64) -> Rect {
     Rect {
         left: (b.origin.x * s).round() as i32,
@@ -78,26 +54,25 @@ pub fn cursor_pos() -> Option<(i32, i32)> {
     Some(((p.x * s).round() as i32, (p.y * s).round() as i32))
 }
 
-/// 主屏工作区（不含菜单栏和程序坞），物理像素
-fn primary_work_area() -> Option<Rect> {
-    primary_screen().map(|(r, _)| r)
-}
-
-/// 主屏整屏，物理像素
-fn primary_monitor() -> Rect {
-    to_rect(CGDisplayBounds(CGMainDisplayID()), scale())
-}
-
-/// 宠物能去的屏幕：只有主屏（见文件开头）
+/// All displays, in one coordinate system even when their backing scales differ.
 pub fn screens() -> Vec<Screen> {
-    primary_work_area()
-        .map(|work| vec![Screen { monitor: primary_monitor(), work, primary: true }])
-        .unwrap_or_default()
+    dispatch2::run_on_main(|mtm| {
+        let list = NSScreen::screens(mtm);
+        let Some(primary) = list.firstObject() else { return vec![] };
+        let top = primary.frame().origin.y + primary.frame().size.height;
+        list.iter()
+            .enumerate()
+            .map(|(i, screen)| Screen {
+                monitor: desktop_rect(screen.frame(), top),
+                work: desktop_rect(screen.visibleFrame(), top),
+                primary: i == 0,
+            })
+            .collect()
+    })
 }
 
-/// 覆盖层只在主屏上，就是主屏的缩放
 pub fn window_scale(_id: isize) -> f64 {
-    primary_screen().map_or(1.0, |(_, s)| s)
+    1.0
 }
 
 type WindowInfo = CFDictionary<CFString, CFType>;
@@ -137,10 +112,8 @@ pub fn frame_bounds(id: isize) -> Option<Rect> {
     }
     let d = window_list(CGWindowListOption::OptionIncludingWindow, id).into_iter().next()?;
     // 不在屏幕上的窗口这个键要么是 false 要么干脆没有
-    let on_screen = d
-        .get(unsafe { kCGWindowIsOnscreen })
-        .and_then(|v| v.downcast::<CFBoolean>().ok())
-        .is_some_and(|b| b.as_bool());
+    let on_screen =
+        d.get(unsafe { kCGWindowIsOnscreen }).and_then(|v| v.downcast::<CFBoolean>().ok()).is_some_and(|b| b.as_bool());
     if !on_screen {
         return None;
     }
@@ -151,7 +124,7 @@ pub fn frame_bounds(id: isize) -> Option<Rect> {
 /// 所有可见的窗口，按 Z 序从上到下排列。`skip` 是我们自己的覆盖层。
 pub fn visible_windows(skip: isize) -> Vec<WinInfo> {
     let s = scale();
-    let area = primary_work_area();
+    let areas = screens();
     let mut out = Vec::new();
     for d in on_screen_windows() {
         let Some(id) = int(&d, unsafe { kCGWindowNumber }).map(|n| n as isize) else { continue };
@@ -175,7 +148,8 @@ pub fn visible_windows(skip: isize) -> Vec<WinInfo> {
         // 浮在普通窗口上面、却盖满整个工作区的：多半是别的透明覆盖层（其他桌宠、录屏标注……），
         // 它们点击穿透，当遮挡物会把所有窗口顶边都挡掉。macOS 查不到窗口是否穿透，只能这样猜。
         if layer > NORMAL_LAYER
-            && area.is_some_and(|a| {
+            && areas.iter().any(|s| {
+                let a = s.work;
                 rect.left <= a.left && rect.top <= a.top && rect.right >= a.right && rect.bottom >= a.bottom
             })
         {
@@ -199,8 +173,7 @@ pub fn window_for_pids(pids: &[u32]) -> Option<isize> {
         if int(&d, unsafe { kCGWindowLayer }) != Some(NORMAL_LAYER) {
             continue;
         }
-        let (Some(id), Some(pid)) = (int(&d, unsafe { kCGWindowNumber }), int(&d, unsafe { kCGWindowOwnerPID }))
-        else {
+        let (Some(id), Some(pid)) = (int(&d, unsafe { kCGWindowNumber }), int(&d, unsafe { kCGWindowOwnerPID })) else {
             continue;
         };
         by_pid.entry(pid as u32).or_insert(id as isize);
@@ -208,31 +181,56 @@ pub fn window_for_pids(pids: &[u32]) -> Option<isize> {
     pids.iter().find_map(|p| by_pid.get(p).copied())
 }
 
-/// 有全屏程序的屏幕（只看主屏），返回整屏矩形
+/// Check the frontmost ordinary window on each display independently.
 pub fn fullscreen_monitors(skip: isize) -> Vec<Rect> {
-    if fullscreen_on_primary(skip) {
-        vec![primary_monitor()]
-    } else {
-        vec![]
-    }
-}
-
-/// 主屏上是否有全屏程序在前台（全屏视频、演示、游戏）。
-/// 原生全屏的程序在自己的 Space 里，覆盖层本来就不会出现在那儿；认出来是为了让前端暂停，和 Windows 一致。
-/// 最大化（zoom）的窗口不盖菜单栏，不算全屏。
-fn fullscreen_on_primary(skip: isize) -> bool {
-    let display = CGDisplayBounds(CGMainDisplayID());
-    let covers = |b: &CGRect| {
-        b.origin.x <= display.origin.x
-            && b.origin.y <= display.origin.y
-            && b.origin.x + b.size.width >= display.origin.x + display.size.width
-            && b.origin.y + b.size.height >= display.origin.y + display.size.height
-    };
-    // 只看最上面的普通窗口：浮动层上盖满屏幕的多半是别的透明覆盖层（见 visible_windows）
-    on_screen_windows()
+    let windows: Vec<Rect> = on_screen_windows()
         .iter()
         .filter(|d| int(d, unsafe { kCGWindowNumber }) != Some(skip as i64))
         .filter(|d| int(d, unsafe { kCGWindowLayer }) == Some(NORMAL_LAYER))
-        .find_map(|d| bounds(d))
-        .is_some_and(|b| covers(&b))
+        .filter(|d| !float(d, unsafe { kCGWindowAlpha }).is_some_and(|a| a <= 0.0))
+        .filter_map(|d| bounds(d).map(|b| to_rect(b, 1.0)))
+        .collect();
+    covered_monitors(&screens(), &windows)
+}
+
+fn covered_monitors(screens: &[Screen], windows: &[Rect]) -> Vec<Rect> {
+    screens
+        .iter()
+        .filter_map(|s| {
+            let m = s.monitor;
+            windows
+                .iter()
+                .find(|w| w.left < m.right && w.right > m.left && w.top < m.bottom && w.bottom > m.top)
+                .filter(|w| w.left <= m.left && w.top <= m.top && w.right >= m.right && w.bottom >= m.bottom)
+                .map(|_| m)
+        })
+        .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use objc2_core_foundation::{CGPoint, CGSize};
+
+    #[test]
+    fn stacked_retina_and_ultrawide_use_points_and_negative_origins() {
+        let lg = CGRect::new(CGPoint::new(-868.0, 1117.0), CGSize::new(3440.0, 1440.0));
+        assert_eq!(desktop_rect(lg, 1117.0), Rect { left: -868, top: -1440, right: 2572, bottom: 0 });
+        let mac = CGRect::new(CGPoint::new(0.0, 61.0), CGSize::new(1728.0, 1023.0));
+        assert_eq!(desktop_rect(mac, 1117.0), Rect { left: 0, top: 33, right: 1728, bottom: 1056 });
+    }
+
+    #[test]
+    fn fullscreen_is_checked_independently_on_each_display() {
+        let mac = Rect { left: 0, top: 0, right: 1728, bottom: 1117 };
+        let lg = Rect { left: -868, top: -1440, right: 2572, bottom: 0 };
+        let screens =
+            [Screen { monitor: mac, work: mac, primary: true }, Screen { monitor: lg, work: lg, primary: false }];
+        let normal = Rect { left: 50, top: 100, right: 1000, bottom: 900 };
+        assert_eq!(covered_monitors(&screens, &[normal, lg]), vec![lg]);
+        assert_eq!(covered_monitors(&screens, &[mac, lg]), vec![mac, lg]);
+        let zoomed = Rect { top: -1410, ..lg };
+        assert!(covered_monitors(&screens, &[normal, zoomed]).is_empty());
+        assert!(covered_monitors(&screens, &[normal, mac]).is_empty());
+    }
 }

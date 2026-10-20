@@ -44,7 +44,7 @@ Grab it, fling it across your screen, and watch it tumble, superhero-land, or st
 - **Rides along when you move a window.** Drag the window gently and it rides along. Stop suddenly and inertia flings it off. Yank the window away and it falls.
 - **Falls when its window closes,** gets minimized, or is covered by another window.
 - **Has a life of its own.** It walks along the taskbar (the Dock on macOS), climbs walls, hangs from the ceiling, and follows your cursor with its eyes. Sometimes it plays on a laptop, trades stocks or eats coins.
-- **Roams across all your monitors (Windows).** Your screens form one world: it walks or gets thrown from one to the next. Where one screen is shorter, it jumps down off the ledge or climbs up the taller screen's wall. A screen running a full-screen game or video is off-limits; the others stay in play. On macOS it stays on the main screen for now.
+- **Roams across all your monitors.** Your screens form one world: it walks or gets thrown from one to the next. Where one screen is shorter, it jumps down off the ledge or climbs up the taller screen's wall. A screen running a full-screen game or video is off-limits; the others stay in play. On macOS, a screen-sized overlay follows Clawd between displays, using logical points so Retina and non-Retina screens stay aligned. The pet switches displays when its center crosses the boundary; it is rendered on one display at a time. Menu-bar or Dock gaps may need a drag to cross.
 - **Pet it** by moving your cursor back and forth over its head.
 - **Stays out of your way.** It walks away from the text box you're typing in, and stays off any screen where a full-screen app (game, video, slides) is running. On macOS, dodging text boxes needs the Accessibility permission: turn it on from the tray menu.
 - **Never steals focus or clicks.** Only the pet itself is clickable. Everything else clicks straight through to the windows below.
@@ -185,7 +185,7 @@ The Dots skins are likewise **fan art** of OpenAI's Dots, not affiliated with or
 - **跟着窗口走：** 平稳拖动它脚下的窗口会带着它走，急停会把它甩飞，猛地一拽会把窗口从它脚下"抽走"。
 - **窗口没了会掉下去：** 脚下的窗口被关掉、最小化或者被挡住时，它会掉下去。
 - **自己会玩：** 在任务栏（macOS 上是程序坞）上走来走去、爬墙、倒挂天花板，眼睛跟着鼠标转；有时还会玩电脑、炒股、吃TOKEN。
-- **多块屏幕随便跑（Windows）：** 几块显示器拼成一个世界，可以走过去、扔过去；屏幕一高一矮时，矮的那块的边沿会跳下去，高的那块的墙能爬上来。某块屏幕在全屏玩游戏/看视频时，那块屏幕不去，其他屏幕照常。macOS 目前只在主屏上活动。
+- **多块屏幕随便跑：** 几块显示器拼成一个世界，可以走过去、扔过去；屏幕一高一矮时，矮的那块的边沿会跳下去，高的那块的墙能爬上来。某块屏幕在全屏玩游戏/看视频时，那块屏幕不去，其他屏幕照常。macOS 使用逻辑点统一不同缩放比例的屏幕坐标，覆盖层跟随 Clawd 切换屏幕。中心越过边界时切换，每次只在一块屏幕上绘制；菜单栏或程序坞造成的空隙可能需要拖动跨越。
 - **可以摸摸它：** 在它头上来回晃鼠标。
 - **不碍事：** 你在哪个输入框打字，它就从那里让开；全屏玩游戏、看视频、放幻灯片时自动躲开那块屏幕。macOS 上躲输入框需要"辅助功能"权限，在托盘菜单里打开。
 - **不抢焦点、不挡点击：** 只有宠物本身能点到，其他地方的点击都会穿透到下面的窗口。

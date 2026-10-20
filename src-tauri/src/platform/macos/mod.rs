@@ -7,10 +7,10 @@ mod input;
 use objc2::msg_send;
 use objc2::runtime::NSObjectProtocol;
 use objc2::sel;
-use objc2_app_kit::{NSWindow, NSWindowCollectionBehavior};
-use objc2_core_foundation::{CFArray, CFLocale, CFRetained, CFString};
+use objc2_app_kit::{NSScreen, NSWindow, NSWindowCollectionBehavior};
+use objc2_core_foundation::{CFArray, CFLocale, CFRetained, CFString, CGPoint, CGRect, CGSize};
 use tauri::image::Image;
-use tauri::{ActivationPolicy, Manager, PhysicalPosition, PhysicalSize, WebviewWindow};
+use tauri::{ActivationPolicy, Manager, WebviewWindow};
 
 use crate::desktop::Rect;
 use crate::lang::Lang;
@@ -69,10 +69,21 @@ pub fn prepare_overlay(win: &WebviewWindow) -> tauri::Result<()> {
     Ok(())
 }
 
-/// 把覆盖层摆到 r（物理像素）。只铺主屏，不会跨缩放不同的屏幕，分两步设没关系
+/// Place in AppKit points atomically. Tauri physical coordinates are ambiguous across
+/// differently scaled displays; setting the frame directly also avoids a transient resize.
 pub fn place_overlay(win: &WebviewWindow, r: Rect) -> tauri::Result<()> {
-    win.set_position(PhysicalPosition::new(r.left, r.top))?;
-    win.set_size(PhysicalSize::new(r.width().max(1) as u32, r.height().max(1) as u32))
+    let ns_window = win.ns_window()? as usize;
+    dispatch2::run_on_main(move |mtm| {
+        let Some(primary) = NSScreen::screens(mtm).firstObject() else { return };
+        let top = primary.frame().origin.y + primary.frame().size.height;
+        let frame = CGRect::new(
+            CGPoint::new(r.left as f64, top - r.bottom as f64),
+            CGSize::new(r.width().max(1) as f64, r.height().max(1) as f64),
+        );
+        let w = unsafe { &*(ns_window as *const NSWindow) };
+        w.setFrame_display(frame, true);
+    });
+    Ok(())
 }
 
 /// 菜单栏图标：Clawd 的剪影（眼睛挖空），系统按浅色/深色菜单栏自己上色（template image）。
@@ -147,7 +158,13 @@ fn parent_pid(pid: u32) -> Option<u32> {
     let mut info: libc::proc_bsdinfo = unsafe { std::mem::zeroed() };
     let size = std::mem::size_of::<libc::proc_bsdinfo>() as libc::c_int;
     let n = unsafe {
-        libc::proc_pidinfo(pid as libc::c_int, libc::PROC_PIDTBSDINFO, 0, &mut info as *mut _ as *mut libc::c_void, size)
+        libc::proc_pidinfo(
+            pid as libc::c_int,
+            libc::PROC_PIDTBSDINFO,
+            0,
+            &mut info as *mut _ as *mut libc::c_void,
+            size,
+        )
     };
     (n == size).then_some(info.pbi_ppid)
 }

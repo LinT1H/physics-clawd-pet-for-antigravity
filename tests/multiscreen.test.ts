@@ -227,6 +227,27 @@ describe('跨屏幕', () => {
 });
 
 describe('屏幕变化', () => {
+  it('preserves a held pet across Retina/1x viewport changes and release', () => {
+    const mac = box(0, 33, 1728, 1056);
+    const lg = box(-868, -1440, 2572, 0);
+    const pet = makePet([mac, lg]);
+    pet.placeOnFloor(800);
+    pet.grab(pet.pos.x, pet.pos.y);
+    pet.moveHold(800, -500, 0, 0);
+    run(pet, 0.1);
+    const before = { ...pet.pos };
+    pet.remap(1, 868, 1440);
+    pet.setScreens([box(868, 1473, 2596, 2496), box(0, 0, 3440, 1440)]);
+    pet.setPixelRatio(1);
+    expect(pet.mode).toBe('held');
+    expect(pet.pos.x).toBeCloseTo(before.x + 868);
+    expect(pet.pos.y).toBeCloseTo(before.y + 1440);
+    pet.release(0, 0, false);
+    run(pet, 3, (p) => p.grounded);
+    expect(pet.screen).toEqual(box(0, 0, 3440, 1440));
+    expect(feet(pet)).toBeCloseTo(1440);
+  });
+
   it('所在的那块屏幕没了：回到剩下的屏幕里', () => {
     const pet = makePet(SIDE_BY_SIDE);
     pet.placeOnFloor(1500);

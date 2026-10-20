@@ -227,6 +227,10 @@ async function main() {
       carrierLatest = null;
       carrierSampler.clear();
       sampler.clear();
+      if (drag) {
+        drag.x0 = drag.x0 * k + dx;
+        drag.y0 = drag.y0 * k + dy;
+      }
     }
     if (msg.screens.length) screens = msg.screens;
     applyScreens();

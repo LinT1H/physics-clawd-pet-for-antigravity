@@ -1,7 +1,7 @@
 //! 桌面观察线程：在原生侧轮询光标、窗口、屏幕和全屏状态，只在有变化时通知前端。
 //! 以前前端每帧都要 IPC 查一次光标，现在空闲时几乎没有 IPC。
 //!
-//! 覆盖层也归它摆：铺满所有能去的屏幕（工作区的外接矩形），屏幕插拔、改排列、
+//! 覆盖层也归它摆：Windows 铺满所有能去的屏幕，macOS 跟随宠物切换屏幕。屏幕插拔、改排列、
 //! 某块屏幕上开了全屏程序时重新摆，并告诉前端坐标怎么换算（desk-screens）。
 
 use std::sync::{Arc, Mutex};
@@ -21,6 +21,7 @@ pub const OVERLAY: &str = "overlay";
 pub struct DeskState {
     /// 可点击区域 [x0, y0, x1, y1]（覆盖层 CSS 像素）：第一个是宠物，后面是气泡之类
     pub hits: Vec<[f64; 4]>,
+    pub geometry_revision: u64,
     pub dragging: bool,
     /// 宠物脚下的窗口，需要高频追踪它的位置
     pub carrier: Option<isize>,
@@ -35,7 +36,7 @@ pub struct DeskState {
 
 #[derive(Clone, Copy)]
 pub struct OverlayGeo {
-    /// 覆盖层（物理像素）
+    /// Overlay bounds in desktop units (Windows pixels; macOS points).
     pub area: Rect,
     pub scale: f64,
     /// 最小的那块屏幕的工作区：判断"输入框大得躲不开"用（几块屏幕加起来比就太宽松了）
@@ -106,9 +107,10 @@ struct RemapMsg {
 struct ScreensMsg {
     screens: Vec<ScreenMsg>,
     remap: Option<RemapMsg>,
+    revision: u64,
 }
 
-/// 物理像素 ↔ 覆盖层 CSS 像素
+/// Desktop units ↔ overlay CSS pixels.
 #[derive(Clone, Copy, PartialEq)]
 struct Geometry {
     area: Rect,
@@ -122,7 +124,7 @@ impl Geometry {
     fn y(&self, py: i32) -> f64 {
         (py - self.area.top) as f64 / self.scale
     }
-    fn screens(&self, list: &[Screen], remap: Option<RemapMsg>) -> ScreensMsg {
+    fn screens(&self, list: &[Screen], remap: Option<RemapMsg>, revision: u64) -> ScreensMsg {
         let screens = list
             .iter()
             .map(|s| ScreenMsg {
@@ -133,7 +135,7 @@ impl Geometry {
                 primary: s.primary,
             })
             .collect();
-        ScreensMsg { screens, remap }
+        ScreensMsg { screens, remap, revision }
     }
 }
 
@@ -166,9 +168,10 @@ fn run(app: AppHandle, shared: Shared, overlay_id: isize, layout: Layout) {
     let mut last_fullscreen_check: Option<Instant> = None;
     let mut hidden = false;
     let mut carrier_rect: Option<(isize, Rect)> = None;
+    let mut revision = 0;
 
     loop {
-        let (hits, dragging, carrier, manual_hidden, resync) = {
+        let (mut hits, dragging, carrier, manual_hidden, resync) = {
             let mut s = shared.lock().unwrap();
             (s.hits.clone(), s.dragging, s.carrier, s.manual_hidden, std::mem::take(&mut s.resync))
         };
@@ -178,6 +181,17 @@ fn run(app: AppHandle, shared: Shared, overlay_id: isize, layout: Layout) {
         };
         let now = Instant::now();
         let mut force_platforms = resync;
+        #[cfg(target_os = "macos")]
+        let anchor = hits.first().map(|r| {
+            (
+                geo.area.left as f64 + (r[0] + r[2]) * 0.5 * geo.scale,
+                geo.area.top as f64 + (r[1] + r[3]) * 0.5 * geo.scale,
+            )
+        });
+        #[cfg(target_os = "macos")]
+        let viewport_changed = desktop::viewport(&active, geo.area, anchor) != geo.area;
+        #[cfg(not(target_os = "macos"))]
+        let viewport_changed = false;
 
         // 哪几块屏幕上有全屏程序（每 0.5 秒）
         let mut fullscreen_changed = false;
@@ -191,11 +205,16 @@ fn run(app: AppHandle, shared: Shared, overlay_id: isize, layout: Layout) {
         }
 
         // 屏幕布局（每秒；全屏状态变了马上）：插拔显示器、改分辨率/缩放/排列、挪任务栏
-        if fullscreen_changed || last_layout_check.map_or(true, |t| now - t >= Duration::from_secs(1)) {
+        if viewport_changed
+            || fullscreen_changed
+            || last_layout_check.map_or(true, |t| now - t >= Duration::from_secs(1))
+        {
             last_layout_check = Some(now);
             match desktop::layout(&platform::screens(), &fullscreen_monitors) {
                 None => all_fullscreen = true,
                 Some(l) => {
+                    #[cfg(target_os = "macos")]
+                    let l = Layout { rect: desktop::viewport(&l.screens, geo.area, anchor), ..l };
                     all_fullscreen = false;
                     // 被别的东西改了位置/大小（比如系统调整）也摆回去
                     let moved = platform::frame_bounds(overlay_id).is_some_and(|r| {
@@ -204,20 +223,31 @@ fn run(app: AppHandle, shared: Shared, overlay_id: isize, layout: Layout) {
                             || (r.right - l.rect.right).abs() > 2
                             || (r.bottom - l.rect.bottom).abs() > 2
                     });
-                    if l.rect != geo.area || moved {
-                        let _ = platform::place_overlay(&win, l.rect);
+                    if (l.rect != geo.area || moved) && platform::place_overlay(&win, l.rect).is_err() {
+                        thread::sleep(Duration::from_millis(100));
+                        continue;
                     }
                     let next = Geometry { area: l.rect, scale: platform::window_scale(overlay_id) };
                     if next != geo || l.screens != active {
                         let (k, dx, dy) = desktop::remap(geo.area, geo.scale, next.area, next.scale);
                         geo = next;
                         active = l.screens;
+                        revision += 1;
                         {
                             let mut s = shared.lock().unwrap();
+                            for r in &mut s.hits {
+                                *r = [r[0] * k + dx, r[1] * k + dy, r[2] * k + dx, r[3] * k + dy];
+                            }
+                            hits = s.hits.clone();
+                            s.geometry_revision = revision;
                             s.overlay = Some(overlay_geo(geo.area, geo.scale, &active));
                             s.input_resync = true;
                         }
-                        let _ = app.emit_to(OVERLAY, "desk-screens", geo.screens(&active, Some(RemapMsg { k, dx, dy })));
+                        let _ = app.emit_to(
+                            OVERLAY,
+                            "desk-screens",
+                            geo.screens(&active, Some(RemapMsg { k, dx, dy }), revision),
+                        );
                         force_platforms = true;
                         carrier_rect = None;
                     }
@@ -229,7 +259,7 @@ fn run(app: AppHandle, shared: Shared, overlay_id: isize, layout: Layout) {
             // 前端重新加载过：不能信任之前的穿透状态，强制重设
             ignoring = !(hover || dragging);
             let _ = win.set_ignore_cursor_events(ignoring);
-            let _ = app.emit_to(OVERLAY, "desk-screens", geo.screens(&active, None));
+            let _ = app.emit_to(OVERLAY, "desk-screens", geo.screens(&active, None, revision));
             let _ = app.emit_to(OVERLAY, "desk-dnd", DndMsg { hidden, reason: "sync" });
             let _ = app.emit_to(OVERLAY, "desk-hover", hover);
             carrier_rect = None;
@@ -310,7 +340,8 @@ fn run(app: AppHandle, shared: Shared, overlay_id: isize, layout: Layout) {
         if force_platforms || last_enum.map_or(true, |t| now - t >= Duration::from_millis(100)) {
             last_enum = Some(now);
             let wins = platform::visible_windows(overlay_id);
-            let segs = desktop::platform_segments(&wins, geo.area, (40.0 * geo.scale) as i32);
+            let world_area = active.iter().map(|s| s.work).reduce(|a, b| a.union(&b)).unwrap_or(geo.area);
+            let segs = desktop::platform_segments(&wins, world_area, (40.0 * geo.scale) as i32);
             if force_platforms || segs != segments {
                 segments = segs;
                 let msg: Vec<PlatformMsg> = segments

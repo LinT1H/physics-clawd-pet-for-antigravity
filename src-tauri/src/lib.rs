@@ -59,6 +59,8 @@ fn create_overlay(app: &AppHandle) -> tauri::Result<WebviewWindow> {
             desktop::Layout { rect: work, screens: vec![desktop::Screen { monitor: work, work, primary: true }] }
         }
     };
+    #[cfg(target_os = "macos")]
+    let layout = desktop::Layout { rect: desktop::viewport(&layout.screens, layout.rect, None), ..layout };
 
     let win = WebviewWindowBuilder::new(app, OVERLAY, WebviewUrl::App("index.html".into()))
         .title("Clawd")
@@ -381,8 +383,12 @@ async fn open_debug(app: AppHandle) -> Result<(), String> {
 
 /// 可点击区域（覆盖层 CSS 像素）：第一个是宠物，后面是气泡之类；空表示没有
 #[tauri::command]
-fn desk_set_hits(state: State<Shared>, rects: Vec<[f64; 4]>) {
-    state.lock().unwrap().hits = rects;
+fn desk_set_hits(state: State<Shared>, rects: Vec<[f64; 4]>, revision: u64) {
+    let mut s = state.lock().unwrap();
+    // A frame sent just before a display transition uses the previous origin.
+    if revision == s.geometry_revision {
+        s.hits = rects;
+    }
 }
 
 #[tauri::command]
@@ -436,12 +442,7 @@ struct SkinInfo {
 
 /// 覆盖层告诉托盘有哪些形象、当前是哪个（菜单项 id 是 "skin:<id>"）
 #[tauri::command]
-fn tray_set_skins(
-    app: AppHandle,
-    state: State<Shared>,
-    skins: Vec<SkinInfo>,
-    current: String,
-) -> Result<(), String> {
+fn tray_set_skins(app: AppHandle, state: State<Shared>, skins: Vec<SkinInfo>, current: String) -> Result<(), String> {
     let Some(items) = app.try_state::<TrayItems>() else {
         return Ok(());
     };
@@ -501,13 +502,7 @@ fn build_tray(app: &AppHandle) -> tauri::Result<()> {
     }
     items.extend([&sep as &dyn IsMenuItem<tauri::Wry>, &quit]);
     let menu = Menu::with_items(app, &items)?;
-    app.manage(TrayItems {
-        reset,
-        hide,
-        skins,
-        input,
-        name: Mutex::new(name.into()),
-    });
+    app.manage(TrayItems { reset, hide, skins, input, name: Mutex::new(name.into()) });
 
     let mut builder = TrayIconBuilder::with_id("main")
         .tooltip(name)
