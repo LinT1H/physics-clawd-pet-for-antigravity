@@ -202,54 +202,73 @@ export class Renderer {
     const ay = Math.round(anchor.y);
 
     const [gw, gh] = skin.grid;
-    const ta = skin.torsoAnchor;
+    // 躯干变换（以身体底边中点为锚缩放再平移），坐标都换成以网格中心为原点
+    const t = pose.torso;
+    const tax = skin.torsoAnchor.x - gw / 2;
+    const tay = skin.torsoAnchor.y - gh / 2;
     // 部件在前，道具在后（画在最上面）
     const np = skin.parts.length;
     const n = np + pose.props.length;
+    /** 每项：摆好姿势、还没转也没跟躯干缩放的矩形 x0 y0 x1 y1 */
     const rects = new Float64Array(n * 4);
+    /** 每项：绕关节旋转的 cos、sin 和关节位置 */
+    const joints = new Float64Array(n * 4);
+    const torsoed = new Uint8Array(n);
     const colors = new Uint32Array(n);
+    const bitmaps: ({ w: number; h: number; data: Uint32Array } | null)[] = new Array(n).fill(null);
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
     let maxY = -Infinity;
     for (let i = 0; i < n; i++) {
       let x: number, y: number, w: number, h: number;
-      let pp = { dx: 0, dy: 0, sx: 1, sy: 1 };
+      let pp = { dx: 0, dy: 0, sx: 1, sy: 1, rot: 0 };
       let followTorso: boolean;
+      let pivot: [number, number] | undefined;
       if (i < np) {
         const part = skin.parts[i];
         [x, y, w, h] = part.rect;
-        pp = pose.parts[i];
-        followTorso = part.role !== 'leg';
+        pp = { ...pose.parts[i] };
+        followTorso = part.role !== 'leg' && !part.anchored;
         colors[i] = part.rgba;
+        pivot = part.pivot;
+        const bm = part.bitmap;
+        if (bm) {
+          // 有这个表情的图就用表情图；没有的话眯眼、眨眼时换闭眼图。换了图都不再压扁
+          const face = bm.faces?.[pose.face];
+          const closed = !face && bm.closed && pp.sy < 0.6;
+          bitmaps[i] = { w: bm.w, h: bm.h, data: face ?? (closed ? bm.closed! : bm.data) };
+          if (face || closed) pp.sy = 1;
+        }
       } else {
         const prop = pose.props[i - np];
         ({ x, y, w, h } = prop);
         followTorso = !!prop.torso;
         colors[i] = prop.rgba;
       }
-      let cx = x + w / 2 + pp.dx;
-      let cy = y + h / 2 + pp.dy;
-      let hw = (w / 2) * pp.sx;
-      let hh = (h / 2) * pp.sy;
-      if (followTorso) {
-        const t = pose.torso;
-        cx = ta.x + (cx - ta.x) * t.sx + t.dx;
-        cy = ta.y + (cy - ta.y) * t.sy + t.dy;
-        hw *= t.sx;
-        hh *= t.sy;
-      }
-      const x0 = cx - hw - gw / 2;
-      const y0 = cy - hh - gh / 2;
-      const x1 = cx + hw - gw / 2;
-      const y1 = cy + hh - gh / 2;
-      rects.set([x0, y0, x1, y1], i * 4);
-      for (const [px, py] of [
-        [x0, y0],
-        [x1, y0],
-        [x0, y1],
-        [x1, y1],
+      const cx = x + w / 2 + pp.dx - gw / 2;
+      const cy = y + h / 2 + pp.dy - gh / 2;
+      const hw = (w / 2) * pp.sx;
+      const hh = (h / 2) * pp.sy;
+      rects.set([cx - hw, cy - hh, cx + hw, cy + hh], i * 4);
+      const c = Math.cos(pp.rot);
+      const sn = Math.sin(pp.rot);
+      const pvx = (pivot ? pivot[0] : x + w / 2) + pp.dx - gw / 2;
+      const pvy = (pivot ? pivot[1] : y + h / 2) + pp.dy - gh / 2;
+      joints.set([c, sn, pvx, pvy], i * 4);
+      torsoed[i] = followTorso ? 1 : 0;
+      for (const [qx, qy] of [
+        [cx - hw, cy - hh],
+        [cx + hw, cy - hh],
+        [cx - hw, cy + hh],
+        [cx + hw, cy + hh],
       ]) {
+        let px = pvx + c * (qx - pvx) - sn * (qy - pvy);
+        let py = pvy + sn * (qx - pvx) + c * (qy - pvy);
+        if (followTorso) {
+          px = tax + (px - tax) * t.sx + t.dx;
+          py = tay + (py - tay) * t.sy + t.dy;
+        }
         const p = apply(m, px, py);
         if (p.x < minX) minX = p.x;
         if (p.y < minY) minY = p.y;
@@ -282,13 +301,33 @@ export class Renderer {
         const px = ox + (i + 0.5) * up;
         const lx = inv.a * px + inv.c * py + inv.e;
         const ly = inv.b * px + inv.d * py + inv.f;
+        // 撤掉躯干变换后的坐标：跟躯干走的部件都在这个坐标系里比
+        const tx = tax + (lx - t.dx - tax) / t.sx;
+        const ty = tay + (ly - t.dy - tay) / t.sy;
         let color = 0;
-        for (let k = n - 1; k >= 0; k--) {
+        for (let k = n - 1; k >= 0 && !color; k--) {
           const b = k * 4;
-          if (lx >= rects[b] && lx < rects[b + 2] && ly >= rects[b + 1] && ly < rects[b + 3]) {
-            color = colors[k];
-            break;
+          let qx = torsoed[k] ? tx : lx;
+          let qy = torsoed[k] ? ty : ly;
+          const sn = joints[b + 1];
+          if (sn !== 0) {
+            // 撤掉绕关节的旋转
+            const c = joints[b];
+            const dx = qx - joints[b + 2];
+            const dy = qy - joints[b + 3];
+            qx = joints[b + 2] + c * dx + sn * dy;
+            qy = joints[b + 3] - sn * dx + c * dy;
           }
+          if (!(qx >= rects[b] && qx < rects[b + 2] && qy >= rects[b + 1] && qy < rects[b + 3])) continue;
+          const bm = bitmaps[k];
+          if (!bm) {
+            color = colors[k];
+            continue;
+          }
+          // 像素图：透明的地方露出下面的部件
+          const u = Math.min(bm.w - 1, Math.floor(((qx - rects[b]) / (rects[b + 2] - rects[b])) * bm.w));
+          const v = Math.min(bm.h - 1, Math.floor(((qy - rects[b + 1]) / (rects[b + 3] - rects[b + 1])) * bm.h));
+          color = bm.data[v * bm.w + u];
         }
         if (color) {
           buf[j * W + i] = color;

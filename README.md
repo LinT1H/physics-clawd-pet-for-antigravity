@@ -64,7 +64,8 @@ Grab it, fling it across your screen, and watch it tumble, superhero-land, or st
 - **Approve from the pet.** When Claude Code asks permission to run a command or edit a file, Clawd runs to that terminal's window and stomps; the bubble above it has Allow / Deny buttons. Answer in the terminal instead and the bubble goes away.
 - Each reaction can be turned off separately.
 
-**Five characters:** Clawd, plus four fluffy Dots: blue with a tilted beret, lime green with eyes on top and a bow tie, yellow with round glasses and a bow tie, and pink with headphones, closed eyes and a pom-pom. Switch from the tray's **Character** menu. Dots uses dense short fur, soft shading and smooth breathing; all four can type, eat tokens and shake tufts of fur loose.
+**Seven characters:** Clawd, plus four fluffy Dots: blue with a tilted beret, lime green with eyes on top and a bow tie, yellow with round glasses and a bow tie, and pink with headphones, closed eyes and a pom-pom. Switch from the tray's **Character** menu. Dots uses dense short fur, soft shading and smooth breathing; all four can type, eat tokens and shake tufts of fur loose.
+Two pixel characters go with the DeepSeek Harness integration: **DeepSeek-chan**, a chibi whale maid whose arms swing from real shoulder joints, who sits down with her laptop on her lap and changes expression with what she's doing; and **Clawd?**, a Clawd that grew a little blue DeepSeek tail, which spins while the AI is thinking. Clawd now pulls faces too: > < when zapped, ^ ^ when petted, a tear when the stock market tanks.
 
 ### Download
 
@@ -95,6 +96,8 @@ The tray menu, the Assistant window, and what Clawd says follow your system lang
 **Codex integration** is also available: open **Assistant → Claude Code / Codex**, select **Codex**, and enable it. Requires a local Codex CLI or desktop runtime with [lifecycle hooks](https://learn.chatgpt.com/docs/hooks). It reacts to prompts, tools, compaction, subagents, completion, and interruptions. Failed tools trigger the error reaction when their result includes an error flag or a nonzero shell exit status. The pet can also handle permission requests; uncheck bubble approval to receive reminders and answer in Codex instead. Reaction settings are shared with Claude Code, and both integrations can run together.
 
 Codex hooks are added to `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`). Existing hooks are preserved; the first edit backs up the file to `hooks.json.clawd-backup`. After enabling, reconnecting, or changing bubble approval, review and trust the updated hooks in Codex (`/hooks` in the CLI), then restart the session if needed. Turning off the integration or uninstalling the pet on Windows removes only its own hooks. Cloud sessions and remote/WSL runtimes cannot connect to this localhost bridge directly.
+
+**DeepSeek Harness integration** works the same way: open **Assistant → Claude Code / Codex / DeepSeek**, select **DeepSeek Harness**, and enable it. DeepSeek Harness has no shell hooks, so the pet installs a small plugin instead: it writes `clawd-pet-<version>.mjs` to `$DSH_HOME/clawd-pet/` (default `~/.dsh/clawd-pet/`) and adds a marked section to the home-level `~/.dsh/cordis.patch.yml`, which applies to every profile. DeepSeek Harness loads it live; no restart is needed. Clawd reacts to prompts, tool calls (a nonzero exit code or a failed tool zaps it), subagents (mini Clawds), compaction, completion, errors and interruptions. Permission requests show up both on Clawd's bubble and in DeepSeek Harness's own approval panel; whichever you answer first wins and the other one goes away. Turning the integration off removes only the pet's section (and the plugin file); the first change to an existing patch file backs it up as `cordis.patch.yml.clawd-backup`. The Windows uninstaller removes it too.
 
 ### Tuning panel
 
@@ -205,7 +208,8 @@ The Dots skins are likewise **fan art** of OpenAI's Dots, not affiliated with or
 - **在宠物上批准权限。** Claude Code 要跑命令或改文件时，Clawd 会跑到那个终端窗口上跺脚，气泡上有允许 / 拒绝按钮。如果你直接在终端里处理，气泡会自动收起。
 - 每种反应都可以单独关掉。
 
-**五个形象：** Clawd，加上四款毛茸茸的 Dots：蓝色斜戴贝雷帽、青柠绿色头顶大眼睛配黑领结、黄色圆眼镜配黑领结、粉色耳机闭眼配头顶毛球。在托盘的 **形象** 菜单里随时切换。Dots 用细密短绒和柔和明暗表现蓬松质感，呼吸和走路起伏也更连贯；四款都会敲代码、吃 TOKEN 和抖毛。
+**七个形象：** Clawd，加上四款毛茸茸的 Dots：蓝色斜戴贝雷帽、青柠绿色头顶大眼睛配黑领结、黄色圆眼镜配黑领结、粉色耳机闭眼配头顶毛球。在托盘的 **形象** 菜单里随时切换。Dots 用细密短绒和柔和明暗表现蓬松质感，呼吸和走路起伏也更连贯；四款都会敲代码、吃 TOKEN 和抖毛。
+另外有两个配合 DeepSeek Harness 联动的像素形象：**DeepSeek 娘**，Q 版鲸鱼女仆，手臂有真正的肩关节，敲电脑时会坐下来把电脑放在腿上，表情跟着动作变；**Clawd?**，长了一条 DeepSeek 蓝色小尾巴的 Clawd，AI 思考时尾巴甩得飞快。Clawd 现在也有表情了：被电 > <、被摸 ^ ^、炒股亏了掉眼泪。
 
 ### 下载
 
@@ -236,6 +240,8 @@ macOS 上托盘图标就是菜单栏里 Clawd 的剪影。
 **和 Codex 联动：** 打开 **小助手 → Claude Code / Codex**，选择 **Codex**，然后开启。需要支持[生命周期 hooks](https://learn.chatgpt.com/docs/hooks) 的本机 Codex CLI 或桌面运行环境。支持思考、工具执行、上下文压缩、子代理、完成和中断；工具结果包含错误标记或非零 shell 退出码时触发被电反应。也可以从气泡处理权限请求；取消勾选气泡批准后，只提醒，仍在 Codex 里选择。反应设置与 Claude Code 共用，两种联动可以同时开启。
 
 Codex 联动写入 `$CODEX_HOME/hooks.json`（默认 `~/.codex/hooks.json`），保留你已有的 hooks，第一次修改前备份为 `hooks.json.clawd-backup`。开启、重新连接或切换气泡批准后，需要在 Codex 里审阅并信任更新后的 hooks（CLI 中使用 `/hooks`），必要时重启会话。关闭联动或在 Windows 上卸载桌宠时，只删除桌宠自己的条目。云端会话以及远程 / WSL 运行环境无法直接连接这个本机桥接服务。
+
+**和 DeepSeek Harness 联动：** 打开 **小助手 → Claude Code / Codex / DeepSeek**，选择 **DeepSeek Harness**，然后开启。DeepSeek Harness 没有 shell hooks，所以桌宠改为装一个小插件：把 `clawd-pet-<版本>.mjs` 放进 `$DSH_HOME/clawd-pet/`（默认 `~/.dsh/clawd-pet/`），并在 home 级的 `~/.dsh/cordis.patch.yml`（对所有 profile 生效）里加一段带标记的配置。DeepSeek Harness 会自动加载，不用重启。支持思考、工具执行（退出码非零或工具报错会被电）、子智能体（迷你 Clawd）、上下文压缩、完成、出错和中断。权限请求会同时出现在 Clawd 的气泡和 DeepSeek Harness 自己的审批面板上，哪边先答算哪边，另一边自动收起。关闭联动只删除桌宠那一段配置和插件文件；第一次修改已有的补丁文件前备份为 `cordis.patch.yml.clawd-backup`。Windows 卸载桌宠时也会一并删除。
 
 ### 调教面板
 

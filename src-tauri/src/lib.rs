@@ -11,6 +11,7 @@ mod assist;
 mod claude;
 mod codex;
 mod desktop;
+mod dsh;
 mod input;
 mod lang;
 mod platform;
@@ -31,6 +32,9 @@ pub fn cli(args: &[String]) -> Option<i32> {
     }
     if args.iter().any(|a| a == "--remove-codex-hooks") {
         return Some(if codex::uninstall().is_ok() { 0 } else { 1 });
+    }
+    if args.iter().any(|a| a == "--remove-dsh-plugin") {
+        return Some(if dsh::uninstall().is_ok() { 0 } else { 1 });
     }
     None
 }
@@ -312,6 +316,26 @@ fn codex_install(token: State<BridgeToken>, permission: bool) -> Result<(), Stri
 #[tauri::command]
 fn codex_uninstall() -> Result<(), String> {
     codex::uninstall()
+}
+
+#[tauri::command]
+fn dsh_status(bridge: State<Arc<claude::Bridge>>, token: State<BridgeToken>) -> CcStatus {
+    CcStatus {
+        hooks: dsh::status(&token.0),
+        port: claude::PORT,
+        bridge_error: bridge.error.lock().unwrap().clone(),
+        last_event: bridge.last_dsh_event.load(std::sync::atomic::Ordering::Relaxed),
+    }
+}
+
+#[tauri::command]
+fn dsh_install(token: State<BridgeToken>, permission: bool) -> Result<(), String> {
+    dsh::install(&token.0, permission)
+}
+
+#[tauri::command]
+fn dsh_uninstall() -> Result<(), String> {
+    dsh::uninstall()
 }
 
 /// 权限气泡上的按钮：allow / deny / pass（交还终端）
@@ -598,6 +622,9 @@ pub fn run() {
             codex_status,
             codex_install,
             codex_uninstall,
+            dsh_status,
+            dsh_install,
+            dsh_uninstall,
             cc_decide
         ])
         .setup(|app| {
@@ -613,6 +640,10 @@ pub fn run() {
             let st = codex::status(&token);
             if st.installed && !st.current {
                 let _ = codex::install(&token, st.permission);
+            }
+            let st = dsh::status(&token);
+            if st.installed && !st.current {
+                let _ = dsh::install(&token, st.permission);
             }
             app.manage(bridge);
             app.manage(BridgeToken(token));

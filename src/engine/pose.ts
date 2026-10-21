@@ -1,7 +1,7 @@
 // 程序化动作：根据宠物状态给每个部件算偏移/缩放。
 // 只依赖部件角色（body/eye/arm/leg），换皮肤不用改这里。
 
-import { type Skin, parseHex } from '../skin/types';
+import { type Expression, type Skin, parseHex } from '../skin/types';
 import { type Affine, type Vec2, clamp, mul, rotate, scale, squashAlong, translate } from './math';
 import {
   CHIME_GAP,
@@ -21,6 +21,8 @@ export interface PartPose {
   dy: number;
   sx: number;
   sy: number;
+  /** 绕部件关节（pivot）转多少（弧度，顺时针）；没有关节的部件总是 0 */
+  rot: number;
 }
 
 /**
@@ -43,9 +45,11 @@ export interface Pose {
   torso: PartPose;
   parts: PartPose[];
   props: Prop[];
+  /** 现在该是什么表情（有表情图的皮肤才看得出来） */
+  face: Expression;
 }
 
-const ident = (): PartPose => ({ dx: 0, dy: 0, sx: 1, sy: 1 });
+const ident = (): PartPose => ({ dx: 0, dy: 0, sx: 1, sy: 1, rot: 0 });
 const smoothstep = (x: number) => {
   const t = clamp(x, 0, 1);
   return t * t * (3 - 2 * t);
@@ -118,6 +122,7 @@ const C = {
   stick: parseHex('#8a5a2b'),
   straw: parseHex('#d9a441'),
   strawDark: parseHex('#a8742a'),
+  logo: parseHex('#4d6bfe'),
 };
 
 /** 电脑翻开的程度：开头翻开、结尾合上，各 0.45 秒 */
@@ -148,15 +153,15 @@ function codeLine(seed: number, i: number) {
   };
 }
 
-/** 笔记本：底座贴着地面，屏幕朝外摆在 dir 那一侧 */
-function laptopProps(pet: Pet, grid: [number, number], out: Prop[]) {
+/** 笔记本：底座贴着地面，屏幕朝外摆在 dir 那一侧。inset：往身体那边挪几个道具像素 */
+function laptopProps(pet: Pet, grid: [number, number], out: Prop[], inset = 0) {
   const open = laptopOpen(pet);
   if (open <= 0.02) return;
   const gwPx = grid[0] * 3;
   const flip = pet.dir < 0;
   // x, y, w, h 都是道具像素，按 16×10 格（48×30 道具像素）的网格写，
   // 再平移到实际网格：底座贴着网格底边，横向相对靠电脑那侧的边缘不变
-  const ox = gwPx - 48;
+  const ox = gwPx - 48 - inset;
   const oy = grid[1] * 3 - 30;
   const add = (x: number, y: number, w: number, h: number, rgba: number) =>
     out.push({ x: (flip ? gwPx - x - ox - w : x + ox) * PX, y: (y + oy) * PX, w: w * PX, h: h * PX, rgba });
@@ -221,6 +226,45 @@ function laptopProps(pet: Pet, grid: [number, number], out: Prop[]) {
     const live = i === n - 1 && Math.floor(pet.t * 4) % 2 === 0;
     put(1 + i, Math.min(y, py), 1, Math.abs(y - py) + 1, live ? C.caret : up ? C.up : C.down);
   }
+}
+
+/** 电脑背面的小鲸鱼标志 */
+const LOGO_ART = ['.....o.', 'oooooo.', '.oooooo', '..ooo..'];
+
+/**
+ * 坐着用电脑（拟人角色）：电脑放在腿上，看到的是屏幕背面。
+ * 屏幕高度按肩膀算，肩膀和手臂露在屏幕上面，手伸到屏幕后面敲键盘。
+ */
+function lapLaptopProps(pet: Pet, skin: Skin, open: number, drop: number, out: Prop[]) {
+  if (open <= 0.02) return;
+  const gx = skin.grid[0] * 3;
+  const gy = skin.grid[1] * 3;
+  const arms = skin.parts.filter((q) => q.role === 'arm' && q.pivot);
+  const shoulder = arms.length ? (arms[0].pivot![1] + drop) * 3 : gy * 0.6;
+  // 放在两肩中间：尾巴之类会把网格撑得不对称，网格中线不一定是身体中线
+  const mid = arms.length === 2 ? ((arms[0].pivot![0] + arms[1].pivot![0]) / 2) * 3 : gx / 2;
+  const full = clamp(Math.round(gy - 2 - shoulder - 3), 6, 15);
+  const h = Math.max(1, Math.round(full * open));
+  const w = 18;
+  const x0 = Math.round(mid - w / 2);
+  const add = (x: number, y: number, ww: number, hh: number, rgba: number) =>
+    out.push({ x: x * PX, y: y * PX, w: ww * PX, h: hh * PX, rgba });
+  add(x0 - 2, gy - 2, w + 4, 1, C.shell);
+  add(x0 - 2, gy - 1, w + 4, 1, C.shellDark);
+  add(x0, gy - 2 - h, w, h, C.bezel);
+  if (h > 2) add(x0 + 1, gy - 1 - h, w - 2, h - 1, C.shell);
+  if (open < 0.95 || full < 8) return;
+  // 炒股时标志跟着涨跌变红变绿
+  const s = pet.stock;
+  const logo =
+    pet.mode === 'stocks' && s.length > 1 ? (s[s.length - 1] >= s[s.length - 2] ? C.up : C.down) : C.logo;
+  const lx = x0 + Math.round((w - 7) / 2);
+  const ly = gy - 2 - h + Math.round((h - 4) / 2);
+  LOGO_ART.forEach((row, r) =>
+    [...row].forEach((ch, c) => {
+      if (ch === 'o') add(lx + (pet.dir < 0 ? 6 - c : c), ly + r, 1, 1, logo);
+    }),
+  );
 }
 
 /** token 金币：7×7 格，一格 = 2 道具像素。咬了几口就少几块，第三口吃光。 */
@@ -544,6 +588,33 @@ export function computePose(pet: Pet, skin: Skin): Pose {
     }
     case 'laptop':
     case 'stocks': {
+      if (skin.laptop === 'lap') {
+        // 坐下来（身子往下挪一截腿长，不压扁），电脑放腿上，两只手轮流敲
+        const open = laptopOpen(pet);
+        const mood = pet.mode === 'stocks' ? pet.stockMood : 0;
+        const legTop = Math.min(...skin.parts.filter((q) => q.role === 'leg').map((q) => q.rect[1]));
+        const drop = Number.isFinite(legTop) ? (skin.grid[1] - legTop) * 0.4 : 1;
+        torso.dy = drop * open;
+        if (mood < -0.25) {
+          crouchBy(0.6 * open);
+          torso.dx = Math.sin(t * 40) * 0.25;
+        }
+        const beat = pet.mode === 'laptop' ? Math.floor(t * 12) % 2 : Math.sin(t * 5) > 0.8 ? 1 : -1;
+        each((pp, part) => {
+          if (part.role !== 'arm') return;
+          if (mood > 0.25 && part.side !== pet.dir) {
+            pp.dy = -2.5; // 涨了！挥拳
+            return;
+          }
+          pp.dx = -part.side * 1.5 * open;
+          if (open >= 0.95 && beat === (part.side > 0 ? 1 : 0)) pp.dy = -0.5;
+        });
+        if (open > 0.5) look = { x: 0, y: 0.7 };
+        if (mood > 0.25) eyeSquint = blinking(t) ? 0.25 : 1.25;
+        else if (mood < -0.25) eyeSquint = 0.5;
+        lapLaptopProps(pet, skin, open, drop, props);
+        break;
+      }
       // 坐下来，靠电脑那只手敲键盘/点鼠标，眼睛盯着屏幕
       const open = laptopOpen(pet);
       const mood = pet.mode === 'stocks' ? pet.stockMood : 0;
@@ -570,7 +641,10 @@ export function computePose(pet: Pet, skin: Skin): Pose {
       if (open > 0.5) look = { x: pet.dir, y: 0.6 };
       if (mood > 0.25) eyeSquint = blinking(t) ? 0.25 : 1.25;
       else if (mood < -0.25) eyeSquint = 0.5;
-      laptopProps(pet, skin.grid, props);
+      // 拟人角色的手臂在网格里面，电脑挪过来贴着手臂，不然够不着
+      const hand = skin.parts.find((q) => q.role === 'arm' && q.side === pet.dir && q.pivot);
+      const edge = hand ? (pet.dir > 0 ? skin.grid[0] - hand.rect[0] - hand.rect[2] : hand.rect[0]) : 0;
+      laptopProps(pet, skin.grid, props, Math.max(0, Math.round(edge * 3) - 2));
       break;
     }
     case 'coin': {
@@ -744,6 +818,8 @@ export function computePose(pet: Pet, skin: Skin): Pose {
     });
   }
 
+  jointPoses(pet, skin, parts);
+
   each((pp, part) => {
     if (part.role !== 'eye') return;
     // 闭眼曲线保留安静的表情，跟随躯干动作，不当作瞳孔移动或压扁。
@@ -754,7 +830,86 @@ export function computePose(pet: Pet, skin: Skin): Pose {
     pp.sy *= eyeSquint;
   });
 
-  return { torso, parts, props };
+  return { torso, parts, props, face: faceFor(pet) };
+}
+
+/** 按状态挑表情：被甩、被电挤成 >_<，被摸、庆祝笑开花，炒股赚了得意、亏了掉眼泪…… */
+function faceFor(pet: Pet): Expression {
+  const tm = pet.modeTime;
+  if (pet.taDa > 0 && (pet.mode === 'land' || pet.mode === 'idle')) return 'happy';
+  switch (pet.mode) {
+    case 'idle':
+      return pet.dizzy > 0 ? 'wince' : 'smile';
+    case 'held':
+      return pet.dizzy > 1 ? 'wince' : 'surprised';
+    case 'air':
+      return Math.hypot(pet.vel.x, pet.vel.y) > 2500 ? 'wince' : 'surprised';
+    case 'roll':
+    case 'splat':
+    case 'shake':
+      return 'wince';
+    case 'hero':
+    case 'cling':
+      return 'smug';
+    case 'petted':
+    case 'sign':
+      return 'happy';
+    case 'laptop':
+    case 'sweep':
+      return 'focus';
+    case 'stocks':
+      return pet.stockMood > 0.25 ? 'smug' : pet.stockMood < -0.25 ? 'cry' : 'focus';
+    case 'coin': {
+      if (pet.bites >= COIN_BITES.length && tm - COIN_BITES[COIN_BITES.length - 1] > 0.25) return 'happy';
+      if (tm < COIN_A) return tm < COIN_S ? 'smile' : 'happy';
+      // 嘴边张嘴，咬下去的一瞬间合上
+      const lastBite = pet.bites > 0 ? COIN_BITES[pet.bites - 1] : -Infinity;
+      return tm - lastBite < 0.15 ? 'smile' : 'eat';
+    }
+    case 'chime': {
+      const since = pet.bites > 0 ? tm - (CHIME_LEAD + (pet.bites - 1) * CHIME_GAP) : 1;
+      return since < 0.3 ? 'happy' : 'smile';
+    }
+    case 'stretch':
+      return tm > 0.5 && tm < STRETCH_RELEASE ? 'yawn' : 'smile';
+    case 'zap':
+      return Math.floor(pet.t * 30) % 2 ? 'wince' : 'surprised';
+    case 'knock':
+      return 'surprised';
+    default:
+      return 'smile';
+  }
+}
+
+/**
+ * 有关节的部件：
+ * - 手臂：上面的动作都是按 Clawd 的小短手写的"手往上抬几格、往外伸几格"，
+ *   这里换算成绕肩膀的角度（抬 3 格 ≈ 举过头顶），平移清零。这样拟人角色不用另写一套动作。
+ * - 带 sway 的部件（尾巴、耳朵、呆毛）：自己慢慢晃，走路、AI 思考时晃得快，飞在空中往后甩。
+ */
+function jointPoses(pet: Pet, skin: Skin, parts: PartPose[]) {
+  const v = pet.mode === 'held' ? pet.holdVel ?? pet.vel : pet.vel;
+  const drag = pet.mode === 'air' || pet.mode === 'held' ? clamp(-v.x / 1500, -1, 1) : 0;
+  skin.parts.forEach((part, i) => {
+    if (!part.pivot) return;
+    const pp = parts[i];
+    if (part.role === 'arm') {
+      const raise = -pp.dy;
+      const out = pp.dx * part.side;
+      // 最多抬到 135°：Q 版的手臂短，再往上就藏到头后面去了，举成"\o/"才看得见
+      const up = raise > 0 ? clamp(raise / 3, 0, 1) * Math.PI * 0.75 : 0;
+      pp.rot += -part.side * (up + out * 0.4);
+      pp.dx = 0;
+      pp.dy = 0;
+    }
+    if (part.sway) {
+      const { amp, speed = 0.5, phase = 0 } = part.sway;
+      // 走路晃得快；AI 在思考时甩得更快（DeepSeek Harness 思考时那条尾巴就是这么甩的）
+      const rate = pet.mode === 'walk' ? 2.5 : pet.agentMood === 'thinking' ? 4 : 1;
+      const deg = amp * Math.sin((pet.t * speed * rate + phase) * Math.PI * 2) + amp * 1.5 * drag;
+      pp.rot += (deg * Math.PI) / 180;
+    }
+  });
 }
 
 /**

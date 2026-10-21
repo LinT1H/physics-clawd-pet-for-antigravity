@@ -3,10 +3,20 @@
 
 import type { AgentMood } from '../engine/pet';
 
+/** 联动对象：Claude Code、Codex、DeepSeek Harness */
+export type AgentProvider = 'claude' | 'codex' | 'dsh';
+
+/** 把文案里的 "Claude Code" / "Claude" 换成实际联动的那个 */
+export function agentText(text: string, provider?: AgentProvider): string {
+  if (provider === 'codex') return text.replace(/Claude(?: Code)?/g, 'Codex');
+  if (provider === 'dsh') return text.replace(/Claude(?: Code)?/g, 'DeepSeek');
+  return text;
+}
+
 /** 原生侧精简过的 hook 事件（见 src-tauri/src/claude.rs 的 summarize） */
 export interface CcEvent {
-  /** Missing in existing Claude hooks; Codex ids are namespaced by the bridge. */
-  provider?: 'claude' | 'codex';
+  /** Missing in existing Claude hooks; Codex / DSH ids are namespaced by the bridge or plugin. */
+  provider?: AgentProvider;
   turn_id?: string;
   event: string;
   session_id: string;
@@ -38,13 +48,13 @@ export interface CcPermission extends CcEvent {
 
 export type Reaction =
   /** 一轮干完了。turnMs：这一轮用了多久；tools：用了几次工具 */
-  | { kind: 'done'; session: string; cwd: string; turnMs: number; tools: number; last?: string; window?: number; provider?: 'claude' | 'codex' }
+  | { kind: 'done'; session: string; cwd: string; turnMs: number; tools: number; last?: string; window?: number; provider?: AgentProvider }
   /** 工具失败 / API 报错 */
   | { kind: 'error'; session: string; message: string }
   | { kind: 'subagent-start'; id: string }
   | { kind: 'subagent-stop'; id: string }
   /** Claude 在等你（权限提示的通知；没装权限 hook 时靠它） */
-  | { kind: 'attention'; session: string; cwd: string; message: string; window?: number; provider?: 'claude' | 'codex' }
+  | { kind: 'attention'; session: string; cwd: string; message: string; window?: number; provider?: AgentProvider }
   /**
    * 这个会话往前走了：挂着的权限请求肯定已经处理过了。
    * 带 tool 的只说明这一个工具跑完了（并行的其他工具可能还在等批准）
@@ -52,7 +62,7 @@ export type Reaction =
   | { kind: 'progress'; session: string; tool_name?: string; tool?: string };
 
 interface Session {
-  provider?: 'claude' | 'codex';
+  provider?: AgentProvider;
   id: string;
   cwd: string;
   mood: AgentMood;
@@ -172,7 +182,7 @@ export class AgentTracker {
   }
 
   /** 给小助手窗口显示的会话列表 */
-  list(): { id: string; provider?: 'claude' | 'codex'; cwd: string; mood: AgentMood; last: number; subagents: number }[] {
+  list(): { id: string; provider?: AgentProvider; cwd: string; mood: AgentMood; last: number; subagents: number }[] {
     return [...this.sessions.values()]
       .map((s) => ({ id: s.id, provider: s.provider, cwd: s.cwd, mood: s.mood, last: s.last, subagents: s.subagents.size }))
       .sort((a, b) => b.last - a.last);

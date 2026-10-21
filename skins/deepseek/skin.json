@@ -1,0 +1,521 @@
+{
+  "id": "deepseek",
+  "name": "DeepSeek-chan",
+  "description": "DeepSeek 拟人鲸鱼女仆，像素小人（同人皮肤，非官方）",
+  "grid": [15, 17],
+  "render": "pixel",
+  "laptop": "lap",
+  "palette": {
+    "outline": "#0b1043",
+    "hair": "#1e2a5c",
+    "hairMid": "#2c4a86",
+    "hairLight": "#417fba",
+    "hairTip": "#6ccff4",
+    "skin": "#fde2d3",
+    "skinShade": "#f0c0b2",
+    "blush": "#f2a1a3",
+    "white": "#fcfdfe",
+    "whiteShade": "#b9c2db",
+    "dress": "#1c2554",
+    "sleeveShine": "#3a4f96",
+    "eye": "#13205a",
+    "eyeShine": "#ffffff",
+    "eyeLow": "#3d6fc0",
+    "bow": "#14152c",
+    "gem": "#4aa3ff",
+    "ribbon": "#7cc6f6",
+    "ribbonDark": "#3f86d0",
+    "tail": "#1f2c66",
+    "tailLight": "#3d5bb0",
+    "belly": "#c3c8e2",
+    "shoe": "#141a48",
+    "shoeShine": "#4c5ea8",
+    "whale": "#3d6fd0",
+    "mouth": "#b65a63",
+    "mouthSoft": "#d98a8e",
+    "mouthInner": "#ef8f98"
+  },
+  "legend": {
+    "K": "outline",
+    "H": "hair",
+    "h": "hairMid",
+    "l": "hairLight",
+    "L": "hairTip",
+    "S": "skin",
+    "s": "skinShade",
+    "R": "blush",
+    "W": "white",
+    "w": "whiteShade",
+    "N": "dress",
+    "n": "sleeveShine",
+    "e": "eye",
+    "o": "eyeShine",
+    "E": "eyeLow",
+    "X": "bow",
+    "G": "gem",
+    "b": "ribbon",
+    "B": "ribbonDark",
+    "T": "tail",
+    "t": "tailLight",
+    "U": "belly",
+    "O": "shoe",
+    "P": "shoeShine",
+    "V": "whale",
+    "M": "mouth",
+    "m": "mouthSoft",
+    "r": "mouthInner"
+  },
+  "parts": [
+    {
+      "id": "hairBack",
+      "role": "body",
+      "rect": [0, 3.6667, 12, 9.6667],
+      "pixels": [
+        "........KKKKKKKKKKKKKKKKKKKK........",
+        ".......KHHHHHHHHHHHHHHHHHHHHK.......",
+        "......KHHHHHHHHHHHHHHHHHHHHHHK......",
+        "......KHHHHHHHHHHHHHHHHHHHHHHK......",
+        ".....KHHHHHHHHHHHHHHHHHHHHHHHHK.....",
+        ".....KHHHHHHHHHHHHHHHHHHHHHHHHK.....",
+        "....KHHHHHHHHHHHHHHHHHHHHHHHHHHK....",
+        "....KHHhHHHHHHHHHHHHHHHHHHHHhHHK....",
+        "....KHhHHHHHHHHHHHHHHHHHHHHHHhHK....",
+        "....KHhHHHHHHHHHHHHHHHHHHHHHHhHK....",
+        "...KHHhHHHHHHHHHHHHHHHHHHHHHHhHHK...",
+        "...KHhHHhHHHHHHHHHHHHHHHHHHhHHhHK...",
+        "...KHhHHhHHHHHHHHHHHHHHHHHHhHHhHK...",
+        "..KHHhHhhHHHHHHHHHHHHHHHHHHhhHhHHK..",
+        "..KHhHHhHHHHHHHHHHHHHHHHHHHHhHHhHK..",
+        "..KHhhHhHHHHHHHHHHHHHHHHHHHHhHhhHK..",
+        "..KhHhhHhHHHHHHHHHHHHHHHHHHhHhhHhK..",
+        "..KhhHlhhHHHHHHHHHHHHHHHHHHhhlHhhK..",
+        ".KhlhhlhHHHHHHHHHHHHHHHHHHHHhlhhlhK.",
+        ".KlhlLlhhHHHHHHHHHHHHHHHHHHhhlLlhlK.",
+        ".KlLlLLlhHHHHHHHHHHHHHHHHHHhlLLlLlK.",
+        ".KLlLLlLlhHHHHHHHHHHHHHHHHhlLlLLlLK.",
+        ".KLLlLLLLlhHHHHHHHHHHHHHHhlLLLLlLLK.",
+        "KLLLLlLLLLlHHHHHHHHHHHHHHlLLLLlLLLLK",
+        "KLKLLLLLKLLhHHHHHHHHHHHHhLLKLLLLLKLK",
+        ".K.KLLKLKKLLhHHHHHHHHHHhLLKKLKLLK.K.",
+        "....KK.K.KLLlhHHHHHHHHhlLLK.K.KK....",
+        "..........KLLhHHHHHHHHhLLK..........",
+        "...........KKKKKKKKKKKKKK..........."
+      ]
+    },
+    {
+      "id": "tail",
+      "role": "body",
+      "rect": [8.3333, 12, 6.3333, 4.6667],
+      "pixels": [
+        "............K...KK.",
+        "...........KTK.KTTK",
+        "...........KTTKTTTK",
+        "............KTTTTK.",
+        "............KTtTK..",
+        "...........KTtTK...",
+        ".KKK......KTtTTK...",
+        "KTTTK....KTtTTK....",
+        "KTTTTKKKKTtTTTK....",
+        "KTTTTTTTTtTTTUK....",
+        ".KTTTTTTTTTTUUK....",
+        "..KUUTTTTTUUUK.....",
+        "...KKUUUUUUKK......",
+        ".....KKKKKK........"
+      ],
+      "pivot": [9.3333, 15.3333],
+      "sway": {
+        "amp": 8,
+        "speed": 0.6
+      },
+      "anchored": true
+    },
+    {
+      "id": "earL",
+      "role": "body",
+      "rect": [0, 5.6667, 3.3333, 2.6667],
+      "pixels": [
+        "......KKK.",
+        "....KKHHHK",
+        "..KKHHHHHK",
+        ".KHHHHHHHK",
+        "KHHHHHhHHK",
+        ".KWWWWHHHK",
+        "..KKWWKKK.",
+        "....KK...."
+      ],
+      "pivot": [2.8333, 6.8333],
+      "sway": {
+        "amp": 6,
+        "speed": 0.4
+      }
+    },
+    {
+      "id": "earR",
+      "role": "body",
+      "rect": [8.6667, 5.6667, 3.3333, 2.6667],
+      "pixels": [
+        ".KKK......",
+        "KHHHKK....",
+        "KHHHHHKK..",
+        "KHHHHHHHK.",
+        "KHHhHHHHHK",
+        "KHHHWWWWK.",
+        ".KKKWWKK..",
+        "....KK...."
+      ],
+      "pivot": [9.1667, 6.8333],
+      "sway": {
+        "amp": 6,
+        "speed": 0.4,
+        "phase": 0.5
+      }
+    },
+    {
+      "id": "legL",
+      "role": "leg",
+      "rect": [4, 13.6667, 2, 3.3333],
+      "pixels": [
+        ".KKKK.",
+        "KSSSsK",
+        "KSSSsK",
+        "KwWWwK",
+        "KWWWwK",
+        "KWWWwK",
+        "KOPOOK",
+        "KOOOOK",
+        "KOOOOK",
+        ".KKKK."
+      ]
+    },
+    {
+      "id": "legR",
+      "role": "leg",
+      "rect": [6, 13.6667, 2, 3.3333],
+      "pixels": [
+        ".KKKK.",
+        "KsSSSK",
+        "KsSSSK",
+        "KwWWwK",
+        "KwWWWK",
+        "KwWWWK",
+        "KOOPOK",
+        "KOOOOK",
+        "KOOOOK",
+        ".KKKK."
+      ]
+    },
+    {
+      "id": "dress",
+      "role": "body",
+      "rect": [1.6667, 8.3333, 8.6667, 6],
+      "pixels": [
+        "........KKKKKKKKKK........",
+        ".......KWWWXXXXWWWK.......",
+        "......KNWWXXXXXXWWNK......",
+        "......KNNWXXGGXXWNNK......",
+        "......KNNNXXXXXXNNNK......",
+        ".....KNNNNWWWWWWNNNNK.....",
+        ".....KNNNWWWWWWWWNNNK.....",
+        ".....KNNWWWWWWWWWWNNK.....",
+        ".....KNWWWWWWWWWWWWNK.....",
+        "....KNNWWWWWWWWWWWWNNK....",
+        "...KNNNWWWWWWWWWWWWNNNK...",
+        "..KNNNNwWWWWWWWWWWwNNNNK..",
+        ".KNNNNNwWWWWWWWWWWwNNNNNK.",
+        ".KNNNNNNwwWwWWwWwwNNNNNNK.",
+        "KNNNNNNNNNNNNNNNNNNNNNNNNK",
+        "KWwWwWwWwWwWwwWwWwWwWwWwWK",
+        ".KWKWKWKWKWKWWKWKWKWKWKWK.",
+        "..K.K.K.K.K.KK.K.K.K.K.K.."
+      ]
+    },
+    {
+      "id": "whale",
+      "role": "body",
+      "rect": [5.6667, 11, 1.6667, 1],
+      "pixels": [
+        "...V.",
+        "VVVVV",
+        ".VVV."
+      ]
+    },
+    {
+      "id": "head",
+      "role": "body",
+      "rect": [1.6667, 3.3333, 8.6667, 6.3333],
+      "pixels": [
+        ".....KKKKKKKKKKKKKKKK.....",
+        "...KKHHHHHHHHHHHHHHHHKK...",
+        "..KHHHHHHHHHHHHHHHHHHHHK..",
+        ".KHHHhhHHHHHHHHHHHHhhHHHK.",
+        ".KHhhhHHhhhHHHHhhhHHhhhHK.",
+        "KHHhllhHHlhhHHhhlHHhllhHHK",
+        "KHhHHhhHHHhHHHHhHHHhhHHhHK",
+        "KHhHHHhHHHHHHHHHHHHhHHHhHK",
+        "KHhhHHHHSHHHHHHHHSHHHHhhHK",
+        "KHhhHHSSSSHHHHHHSSSSHHhhHK",
+        "KHhhHHSSSSSSHHSSSSSSHHhhHK",
+        "KHhhHHSSSSSSSSSSSSSSHHhhHK",
+        "KHhhHHSSSSSSSSSSSSSSHHhhHK",
+        "KHlhHHRRSSSSSSSSSSRRHHhlHK",
+        ".KlhHHSSSSSSSSSSSSSSHHhlK.",
+        ".KllHKKsSSSSSSSSSSsKKHllK.",
+        "..KlLK.KKssssssssKK.KLlK..",
+        "..KLK....KKKKKKKK....KLK..",
+        "...K..................K..."
+      ]
+    },
+    {
+      "id": "headdress",
+      "role": "body",
+      "rect": [1, 2, 9.3333, 3.6667],
+      "pixels": [
+        ".........KK.KKKK.KK.........",
+        ".......KKWWKWWWWKWWKK.......",
+        ".....KKWWWWWWWWWWWWWWKK.....",
+        "....KWWWwWWwWWWWwWWwWWWK....",
+        "..KKWWwWWwwwwwwwwwwWWwWWKK..",
+        ".KbbWwwbKKKKKKKKKKKKbwwWbbK.",
+        "KbbbWbbbK..........KbbbWbbbK",
+        "KbbbBbbbK..........KbbbBbbbK",
+        "KbbbKbbbK..........KbbbKbbbK",
+        ".KBK.KBK............KBK.KBK.",
+        "..K...K..............K...K.."
+      ]
+    },
+    {
+      "id": "armL",
+      "role": "arm",
+      "rect": [2.3333, 9, 2.6667, 3.3333],
+      "pixels": [
+        "....KKK.",
+        "...KNNNK",
+        "..KNnNNK",
+        "..KWWWNK",
+        "..KSSSK.",
+        ".KSSSK..",
+        ".KSSsK..",
+        "KSSsK...",
+        "KSsK....",
+        ".KK....."
+      ],
+      "pivot": [4.1667, 9.6667]
+    },
+    {
+      "id": "armR",
+      "role": "arm",
+      "rect": [7, 9, 2.6667, 3.3333],
+      "pixels": [
+        ".KKK....",
+        "KNNNK...",
+        "KNNnNK..",
+        "KNWWWK..",
+        ".KSSSK..",
+        "..KSSSK.",
+        "..KsSSK.",
+        "...KsSSK",
+        "....KsSK",
+        ".....KK."
+      ],
+      "pivot": [7.8333, 9.6667]
+    },
+    {
+      "id": "ahoge",
+      "role": "body",
+      "rect": [5, 0.6667, 2, 2],
+      "pixels": [
+        ".KKK..",
+        "KhhhK.",
+        "Kh.KhK",
+        "Kh..K.",
+        ".KhK..",
+        "..Kh.."
+      ],
+      "pivot": [5.8333, 2.6667],
+      "sway": {
+        "amp": 12,
+        "speed": 0.7
+      }
+    },
+    {
+      "id": "mouth",
+      "role": "body",
+      "rect": [5.3333, 8, 1.3333, 1],
+      "pixels": [
+        "....",
+        ".mm.",
+        "...."
+      ],
+      "faces": {
+        "focus": [
+          "....",
+          "mMMm",
+          "...."
+        ],
+        "happy": [
+          "MrrM",
+          ".MM.",
+          "...."
+        ],
+        "surprised": [
+          ".MM.",
+          ".MM.",
+          "...."
+        ],
+        "wince": [
+          ".MM.",
+          "M..M",
+          "...."
+        ],
+        "cry": [
+          ".MM.",
+          "M..M",
+          "...."
+        ],
+        "smug": [
+          "...M",
+          ".MM.",
+          "...."
+        ],
+        "eat": [
+          "MMMM",
+          "MrrM",
+          ".MM."
+        ],
+        "yawn": [
+          ".MM.",
+          "MrrM",
+          ".MM."
+        ]
+      }
+    },
+    {
+      "id": "eyeL",
+      "role": "eye",
+      "rect": [4, 6.3333, 1.3333, 1.6667],
+      "pixels": [
+        "....",
+        ".oe.",
+        ".ee.",
+        ".EE.",
+        "...."
+      ],
+      "closed": [
+        "....",
+        "....",
+        ".ee.",
+        "....",
+        "...."
+      ],
+      "faces": {
+        "happy": [
+          "....",
+          ".ee.",
+          "e..e",
+          "....",
+          "...."
+        ],
+        "surprised": [
+          ".ee.",
+          "eWWe",
+          "eWWe",
+          ".ee.",
+          "...."
+        ],
+        "wince": [
+          "....",
+          "ee..",
+          "..ee",
+          "ee..",
+          "...."
+        ],
+        "cry": [
+          "....",
+          ".oe.",
+          ".ee.",
+          ".EE.",
+          ".b.."
+        ],
+        "smug": [
+          "....",
+          "eee.",
+          ".Ee.",
+          "....",
+          "...."
+        ],
+        "yawn": [
+          "....",
+          "....",
+          "eee.",
+          "....",
+          "...."
+        ]
+      },
+      "gaze": 0.34
+    },
+    {
+      "id": "eyeR",
+      "role": "eye",
+      "rect": [6.6667, 6.3333, 1.3333, 1.6667],
+      "pixels": [
+        "....",
+        ".oe.",
+        ".ee.",
+        ".EE.",
+        "...."
+      ],
+      "closed": [
+        "....",
+        "....",
+        ".ee.",
+        "....",
+        "...."
+      ],
+      "faces": {
+        "happy": [
+          "....",
+          ".ee.",
+          "e..e",
+          "....",
+          "...."
+        ],
+        "surprised": [
+          ".ee.",
+          "eWWe",
+          "eWWe",
+          ".ee.",
+          "...."
+        ],
+        "wince": [
+          "....",
+          "..ee",
+          "ee..",
+          "..ee",
+          "...."
+        ],
+        "cry": [
+          "....",
+          ".oe.",
+          ".ee.",
+          ".EE.",
+          "..b."
+        ],
+        "smug": [
+          "....",
+          ".eee",
+          ".eE.",
+          "....",
+          "...."
+        ],
+        "yawn": [
+          "....",
+          "....",
+          ".eee",
+          "....",
+          "...."
+        ]
+      },
+      "gaze": 0.34
+    }
+  ]
+}

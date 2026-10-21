@@ -1,7 +1,7 @@
 // 小助手窗口：管理待办、日历订阅、报时和休息提醒的设置。
 // 提醒本身由覆盖层（宠物那边）负责；这里只改数据，再显示覆盖层发来的日程和状态。
 
-import { folderName } from '../claude/agent';
+import { type AgentProvider, agentText, folderName } from '../claude/agent';
 import type { ClaudeLive } from '../overlay/claude';
 import type { AssistantStatus } from '../overlay/companion';
 import {
@@ -13,6 +13,9 @@ import {
   codexStatus,
   codexUninstall,
   createBus,
+  dshInstall,
+  dshStatus,
+  dshUninstall,
   loadAssistant,
   pickIcsFile,
   saveAssistant,
@@ -322,8 +325,13 @@ async function main() {
   let cc: CcStatus | null = null;
   let live: ClaudeLive | null = null;
   const providerSelect = $<HTMLSelectElement>('ccProvider');
-  let provider: 'claude' | 'codex' = 'claude';
-  const linkText = (text: string) => provider === 'codex' ? text.replace(/Claude(?: Code)?/g, 'Codex') : text;
+  let provider: AgentProvider = 'claude';
+  const linkText = (text: string) => agentText(text, provider);
+  const api = {
+    claude: { status: ccStatus, install: ccInstall, uninstall: ccUninstall },
+    codex: { status: codexStatus, install: codexInstall, uninstall: codexUninstall },
+    dsh: { status: dshStatus, install: dshInstall, uninstall: dshUninstall },
+  };
   let refreshing = 0;
   const permBox = $<HTMLInputElement>('ccPermission');
   permBox.checked = true;
@@ -357,7 +365,7 @@ async function main() {
     toggle.textContent = h.installed ? (h.current ? W.ccDisable : W.ccReinstall) : W.ccEnable;
     toggle.className = h.installed && h.current ? '' : 'primary';
     toggle.disabled = !!cc.bridge_error && !h.installed;
-    $('ccHint').textContent = provider === 'codex' ? W.codexHint(h.settings_path) : W.ccHint(h.settings_path);
+    $('ccHint').textContent = (provider === 'codex' ? W.codexHint : provider === 'dsh' ? W.dshHint : W.ccHint)(h.settings_path);
     const permLabel = permBox.parentElement?.querySelector('span');
     if (permLabel) permLabel.textContent = linkText(W.ccPermission);
 
@@ -386,7 +394,7 @@ async function main() {
     const selected = provider;
     const request = ++refreshing;
     try {
-      const status = await (selected === 'codex' ? codexStatus() : ccStatus());
+      const status = await api[selected].status();
       if (selected !== provider || request !== refreshing) return;
       cc = status;
       if (cc.hooks.installed) permBox.checked = cc.hooks.permission;
@@ -397,7 +405,8 @@ async function main() {
   }
 
   providerSelect.onchange = () => {
-    provider = providerSelect.value === 'codex' ? 'codex' : 'claude';
+    const v = providerSelect.value;
+    provider = v === 'codex' || v === 'dsh' ? v : 'claude';
     cc = null;
     permBox.checked = true;
     $<HTMLButtonElement>('ccToggle').disabled = true;
@@ -409,9 +418,9 @@ async function main() {
     $<HTMLButtonElement>('ccToggle').disabled = true;
     try {
       if (cc?.hooks.installed && cc.hooks.current) {
-        await (selected === 'codex' ? codexUninstall() : ccUninstall());
+        await api[selected].uninstall();
         bus.emit('cc-disconnect', selected);
-      } else await (selected === 'codex' ? codexInstall(permBox.checked) : ccInstall(permBox.checked));
+      } else await api[selected].install(permBox.checked);
     } catch (e) {
       note(String(e));
     }
@@ -420,7 +429,7 @@ async function main() {
   permBox.onchange = async () => {
     if (!cc?.hooks.installed) return;
     try {
-      await (provider === 'codex' ? codexInstall(permBox.checked) : ccInstall(permBox.checked));
+      await api[provider].install(permBox.checked);
     } catch (e) {
       note(String(e));
     }
@@ -438,7 +447,7 @@ async function main() {
   }, 5000);
 
   // 试一下：在本地编几条 Claude Code 事件发给覆盖层
-  const testSession = () => provider === 'codex' ? 'codex:clawd-test' : 'clawd-test';
+  const testSession = () => provider === 'claude' ? 'clawd-test' : `${provider}:clawd-test`;
   const testCwd = pick({ zh: '~/示例项目', ja: '~/サンプル', en: '~/demo-project' });
   const fake = (event: string, extra: Record<string, unknown> = {}) =>
     bus.emit('cc-event', { event, provider, session_id: testSession(), cwd: testCwd, t: Date.now(), ...extra });
