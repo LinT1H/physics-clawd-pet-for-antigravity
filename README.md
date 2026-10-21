@@ -96,6 +96,8 @@ The tray menu, the Assistant window, and what Clawd says follow your system lang
 
 Codex hooks are added to `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`). Existing hooks are preserved; the first edit backs up the file to `hooks.json.clawd-backup`. After enabling, reconnecting, or changing bubble approval, review and trust the updated hooks in Codex (`/hooks` in the CLI), then restart the session if needed. Turning off the integration or uninstalling the pet on Windows removes only its own hooks. Cloud sessions and remote/WSL runtimes cannot connect to this localhost bridge directly.
 
+**DeepSeek Harness integration** works the same way: open **Assistant → Claude Code / Codex / DeepSeek**, select **DeepSeek Harness**, and enable it. DeepSeek Harness has no shell hooks, so the pet installs a small plugin instead: it writes `clawd-pet-<version>.mjs` to `$DSH_HOME/clawd-pet/` (default `~/.dsh/clawd-pet/`) and adds a marked section to the home-level `~/.dsh/cordis.patch.yml`, which applies to every profile. DeepSeek Harness loads it live; no restart is needed. Clawd reacts to prompts, tool calls (a nonzero exit code or a failed tool zaps it), subagents (mini Clawds), compaction, completion, errors and interruptions. Permission requests show up both on Clawd's bubble and in DeepSeek Harness's own approval panel; whichever you answer first wins and the other one goes away. Turning the integration off removes only the pet's section (and the plugin file); the first change to an existing patch file backs it up as `cordis.patch.yml.clawd-backup`. The Windows uninstaller removes it too.
+
 ### Tuning panel
 
 Everything about how Clawd feels is adjustable live: gravity, bounciness, landing thresholds, walking speed, size and 60+ other parameters. The panel also has slow motion, pause and single-step, repeatable test throws, and a "replay last throw" button.
@@ -236,6 +238,8 @@ macOS 上托盘图标就是菜单栏里 Clawd 的剪影。
 **和 Codex 联动：** 打开 **小助手 → Claude Code / Codex**，选择 **Codex**，然后开启。需要支持[生命周期 hooks](https://learn.chatgpt.com/docs/hooks) 的本机 Codex CLI 或桌面运行环境。支持思考、工具执行、上下文压缩、子代理、完成和中断；工具结果包含错误标记或非零 shell 退出码时触发被电反应。也可以从气泡处理权限请求；取消勾选气泡批准后，只提醒，仍在 Codex 里选择。反应设置与 Claude Code 共用，两种联动可以同时开启。
 
 Codex 联动写入 `$CODEX_HOME/hooks.json`（默认 `~/.codex/hooks.json`），保留你已有的 hooks，第一次修改前备份为 `hooks.json.clawd-backup`。开启、重新连接或切换气泡批准后，需要在 Codex 里审阅并信任更新后的 hooks（CLI 中使用 `/hooks`），必要时重启会话。关闭联动或在 Windows 上卸载桌宠时，只删除桌宠自己的条目。云端会话以及远程 / WSL 运行环境无法直接连接这个本机桥接服务。
+
+**和 DeepSeek Harness 联动：** 打开 **小助手 → Claude Code / Codex / DeepSeek**，选择 **DeepSeek Harness**，然后开启。DeepSeek Harness 没有 shell hooks，所以桌宠改为装一个小插件：把 `clawd-pet-<版本>.mjs` 放进 `$DSH_HOME/clawd-pet/`（默认 `~/.dsh/clawd-pet/`），并在 home 级的 `~/.dsh/cordis.patch.yml`（对所有 profile 生效）里加一段带标记的配置。DeepSeek Harness 会自动加载，不用重启。支持思考、工具执行（退出码非零或工具报错会被电）、子智能体（迷你 Clawd）、上下文压缩、完成、出错和中断。权限请求会同时出现在 Clawd 的气泡和 DeepSeek Harness 自己的审批面板上，哪边先答算哪边，另一边自动收起。关闭联动只删除桌宠那一段配置和插件文件；第一次修改已有的补丁文件前备份为 `cordis.patch.yml.clawd-backup`。Windows 卸载桌宠时也会一并删除。
 
 ### 调教面板
 

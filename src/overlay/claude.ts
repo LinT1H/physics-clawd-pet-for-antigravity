@@ -3,7 +3,7 @@
 //   一轮干完 → 后空翻撒彩纸；出错 → 被电；子代理 → 迷你 Clawd
 //   要你批准 → 跑到那个终端窗口上跺脚，头顶气泡上可以直接点允许/拒绝
 
-import { AgentTracker, type CcEvent, type CcPermission, type Reaction, folderName } from '../claude/agent';
+import { type AgentProvider, AgentTracker, type CcEvent, type CcPermission, type Reaction, agentText, folderName } from '../claude/agent';
 import { T, pick } from '../assistant/i18n';
 import type { ClaudeSettings } from '../assistant/model';
 import type { Pet } from '../engine/pet';
@@ -18,8 +18,13 @@ const DONE_BUBBLE_MS = 30000;
 const DONE_BUBBLE_SHOW = 8000;
 /** 被电的冷却：连着失败好几次别一直电 */
 const ZAP_COOLDOWN = 10000;
-const agentText = (text: string, provider?: 'claude' | 'codex') =>
-  provider === 'codex' ? text.replace(/Claude(?: Code)?/g, 'Codex') : text;
+
+/** 权限气泡的小字：关掉气泡以后去哪里选 */
+function permHint(provider?: AgentProvider): string {
+  if (provider === 'codex') return pick({ zh: '关掉气泡 = 回 Codex 里自己选', ja: '吹き出しを閉じたら、Codex側で選べるで', en: 'Close the bubble to answer in Codex' });
+  if (provider === 'dsh') return pick({ zh: '关掉气泡 = 回 DeepSeek Harness 里自己选', ja: '吹き出しを閉じたら、DeepSeek Harness側で選べるで', en: 'Close the bubble to answer in DeepSeek Harness' });
+  return T.ccPermHint;
+}
 
 /** 发给小助手窗口的联动状态 */
 export interface ClaudeLive {
@@ -45,7 +50,7 @@ export class ClaudeLink {
     this.bus.on('cc-permission', (p: CcPermission) => this.onPermission(p));
     this.bus.on('cc-permission-gone', (m: { id: number }) => this.dropPermission(m.id));
     this.bus.on('cc-hello', () => this.publish());
-    this.bus.on('cc-disconnect', (provider: 'claude' | 'codex') => {
+    this.bus.on('cc-disconnect', (provider: AgentProvider) => {
       for (const [id, p] of this.perms) {
         if ((p.provider ?? 'claude') === provider) {
           void ccDecide(id, 'pass');
@@ -143,7 +148,7 @@ export class ClaudeLink {
       key: `perm:${p.id}`,
       kind: 'claude',
       title: agentText(T.ccPermTitle(p.tool_name === 'apply_patch' ? 'Edit' : p.tool_name ?? ''), p.provider),
-      body: `${folderName(p.cwd)} · ${p.provider === 'codex' ? pick({ zh: '关掉气泡 = 回 Codex 里自己选', ja: '吹き出しを閉じたら、Codex側で選べるで', en: 'Close the bubble to answer in Codex' }) : T.ccPermHint}`,
+      body: `${folderName(p.cwd)} · ${permHint(p.provider)}`,
       code: p.tool,
       buttons: [
         { label: T.ccAllow, primary: true, run: () => decide('allow') },
