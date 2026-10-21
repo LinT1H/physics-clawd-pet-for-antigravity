@@ -15,11 +15,11 @@ const oy = Math.floor((SIZE - gh * unit) / 2);
 
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const pixels = Buffer.alloc(SIZE * SIZE * 4);
-for (const part of skin.parts) {
-  const [r, g, b] = hex(skin.palette[part.color]);
-  const [px, py, pw, ph] = part.rect;
-  for (let y = oy + py * unit; y < oy + (py + ph) * unit; y++) {
-    for (let x = ox + px * unit; x < ox + (px + pw) * unit; x++) {
+const fill = (x0, y0, x1, y1, color) => {
+  const [r, g, b] = hex(color);
+  for (let y = Math.round(y0); y < Math.round(y1); y++) {
+    for (let x = Math.round(x0); x < Math.round(x1); x++) {
+      if (x < 0 || y < 0 || x >= SIZE || y >= SIZE) continue;
       const i = (y * SIZE + x) * 4;
       pixels[i] = r;
       pixels[i + 1] = g;
@@ -27,6 +27,23 @@ for (const part of skin.parts) {
       pixels[i + 3] = 255;
     }
   }
+};
+// 部件可以是纯色矩形，也可以是像素图（一个字符 = 1/3 格，字符按 legend 换成颜色，'.' 透明）
+for (const part of skin.parts) {
+  const [px, py, pw, ph] = part.rect;
+  const x0 = ox + px * unit;
+  const y0 = oy + py * unit;
+  if (!part.pixels) {
+    fill(x0, y0, x0 + pw * unit, y0 + ph * unit, skin.palette[part.color]);
+    continue;
+  }
+  const sub = unit / 3;
+  part.pixels.forEach((row, j) =>
+    [...row].forEach((c, i) => {
+      if (c === '.' || c === ' ') return;
+      fill(x0 + i * sub, y0 + j * sub, x0 + (i + 1) * sub, y0 + (j + 1) * sub, skin.palette[skin.legend[c]]);
+    }),
+  );
 }
 
 const crcTable = Array.from({ length: 256 }, (_, n) => {

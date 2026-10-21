@@ -89,6 +89,7 @@ pub fn place_overlay(win: &WebviewWindow, r: Rect) -> tauri::Result<()> {
 /// 菜单栏图标：Clawd 的剪影（眼睛挖空），系统按浅色/深色菜单栏自己上色（template image）。
 /// 菜单栏图标固定 18pt 高：每格 3 像素、上下各留 3 像素，16×10 格正好 48×36，Retina 上一格对齐整像素。
 /// 直接从皮肤文件画，和应用图标（scripts/make-icon.mjs）同一个来源。
+/// 部件可以是纯色矩形，也可以是像素图（一个字符 = 1/3 格 = 图标上的 1 像素），rect 可能是 1/3 格的小数。
 pub fn tray_template_icon() -> Option<Image<'static>> {
     #[derive(serde::Deserialize)]
     struct Skin {
@@ -97,8 +98,10 @@ pub fn tray_template_icon() -> Option<Image<'static>> {
     }
     #[derive(serde::Deserialize)]
     struct Part {
-        color: String,
-        rect: [u32; 4],
+        role: String,
+        rect: [f64; 4],
+        #[serde(default)]
+        pixels: Option<Vec<String>>,
     }
     const CELL: u32 = 3;
     const PAD: u32 = 3;
@@ -106,12 +109,33 @@ pub fn tray_template_icon() -> Option<Image<'static>> {
     let (w, h) = (skin.grid[0] * CELL, skin.grid[1] * CELL + 2 * PAD);
     // 全黑，只用 alpha：身体不透明，眼睛（画在身体后面）挖空
     let mut rgba = vec![0u8; (w * h * 4) as usize];
+    let mut put = |px: i64, py: i64, alpha: u8| {
+        let py = py + PAD as i64;
+        if px >= 0 && py >= 0 && (px as u32) < w && (py as u32) < h {
+            rgba[((py as u32 * w + px as u32) * 4 + 3) as usize] = alpha;
+        }
+    };
     for part in &skin.parts {
-        let alpha = if part.color == "eye" { 0 } else { 255 };
-        let [x, y, pw, ph] = part.rect;
-        for py in y * CELL + PAD..(y + ph) * CELL + PAD {
-            for px in x * CELL..(x + pw) * CELL {
-                rgba[((py * w + px) * 4 + 3) as usize] = alpha;
+        let alpha = if part.role == "eye" { 0 } else { 255 };
+        let px = |v: f64| (v * CELL as f64).round() as i64;
+        let [x, y, pw, ph] = part.rect.map(px);
+        match &part.pixels {
+            // 像素图：只有不透明的字符算数
+            Some(rows) => {
+                for (j, row) in rows.iter().enumerate() {
+                    for (i, c) in row.chars().enumerate() {
+                        if c != '.' && c != ' ' {
+                            put(x + i as i64, y + j as i64, alpha);
+                        }
+                    }
+                }
+            }
+            None => {
+                for py in y..y + ph {
+                    for px in x..x + pw {
+                        put(px, py, alpha);
+                    }
+                }
             }
         }
     }
