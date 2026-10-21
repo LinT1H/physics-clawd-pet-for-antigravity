@@ -64,7 +64,8 @@ Grab it, fling it across your screen, and watch it tumble, superhero-land, or st
 - **Approve from the pet.** When Claude Code asks permission to run a command or edit a file, Clawd runs to that terminal's window and stomps; the bubble above it has Allow / Deny buttons. Answer in the terminal instead and the bubble goes away.
 - Each reaction can be turned off separately.
 
-**Five characters:** Clawd, plus four fluffy Dots: blue with a tilted beret, lime green with eyes on top and a bow tie, yellow with round glasses and a bow tie, and pink with headphones, closed eyes and a pom-pom. Switch from the tray's **Character** menu. Dots uses dense short fur, soft shading and smooth breathing; all four can type, eat tokens and shake tufts of fur loose.
+**Seven characters:** Clawd, plus four fluffy Dots: blue with a tilted beret, lime green with eyes on top and a bow tie, yellow with round glasses and a bow tie, and pink with headphones, closed eyes and a pom-pom. Switch from the tray's **Character** menu. Dots uses dense short fur, soft shading and smooth breathing; all four can type, eat tokens and shake tufts of fur loose.
+Two pixel characters go with the DeepSeek Harness integration: **DeepSeek-chan**, a chibi whale maid whose arms swing from real shoulder joints, who sits down with her laptop on her lap and changes expression with what she's doing; and **Clawd?**, a Clawd that grew a little blue DeepSeek tail, which spins while the AI is thinking. Clawd now pulls faces too: > < when zapped, ^ ^ when petted, a tear when the stock market tanks.
 
 ### Download
 
@@ -207,7 +208,8 @@ The Dots skins are likewise **fan art** of OpenAI's Dots, not affiliated with or
 - **在宠物上批准权限。** Claude Code 要跑命令或改文件时，Clawd 会跑到那个终端窗口上跺脚，气泡上有允许 / 拒绝按钮。如果你直接在终端里处理，气泡会自动收起。
 - 每种反应都可以单独关掉。
 
-**五个形象：** Clawd，加上四款毛茸茸的 Dots：蓝色斜戴贝雷帽、青柠绿色头顶大眼睛配黑领结、黄色圆眼镜配黑领结、粉色耳机闭眼配头顶毛球。在托盘的 **形象** 菜单里随时切换。Dots 用细密短绒和柔和明暗表现蓬松质感，呼吸和走路起伏也更连贯；四款都会敲代码、吃 TOKEN 和抖毛。
+**七个形象：** Clawd，加上四款毛茸茸的 Dots：蓝色斜戴贝雷帽、青柠绿色头顶大眼睛配黑领结、黄色圆眼镜配黑领结、粉色耳机闭眼配头顶毛球。在托盘的 **形象** 菜单里随时切换。Dots 用细密短绒和柔和明暗表现蓬松质感，呼吸和走路起伏也更连贯；四款都会敲代码、吃 TOKEN 和抖毛。
+另外有两个配合 DeepSeek Harness 联动的像素形象：**DeepSeek 娘**，Q 版鲸鱼女仆，手臂有真正的肩关节，敲电脑时会坐下来把电脑放在腿上，表情跟着动作变；**Clawd?**，长了一条 DeepSeek 蓝色小尾巴的 Clawd，AI 思考时尾巴甩得飞快。Clawd 现在也有表情了：被电 > <、被摸 ^ ^、炒股亏了掉眼泪。
 
 ### 下载
 

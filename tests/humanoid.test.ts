@@ -159,3 +159,40 @@ describe('DeepSeek 娘：拟人骨骼', () => {
     expect(computePose(pet, clawd).parts.every((p) => p.rot === 0)).toBe(true);
   });
 });
+
+describe('Clawd 的表情和 Clawd? 的尾巴', () => {
+  it('Clawd 被电、被摸时换成 > < 和 ^ ^ 的眼睛', () => {
+    const clawd = findSkin('clawd');
+    for (const p of clawd.parts.filter((q) => q.role === 'eye')) {
+      for (const e of ['happy', 'wince', 'cry', 'smug', 'yawn'] as const) expect(p.bitmap?.faces?.[e]).toBeDefined();
+    }
+    const pet = makePet(clawd);
+    pet.cue('zap');
+    pet.step(STEP, null);
+    expect(['wince', 'surprised']).toContain(computePose(pet, clawd).face);
+  });
+
+  it('Clawd? 的身体和 Clawd 一样大，尾巴伸出碰撞盒，AI 思考时甩得更快', () => {
+    const clawd = findSkin('clawd');
+    const fake = findSkin('clawd-dsh');
+    expect(fake.grid).toEqual(clawd.grid);
+    expect(fake.bodyBox).toEqual(clawd.bodyBox);
+    const tail = fake.parts.findIndex((p) => p.id === 'tail');
+    expect(fake.parts[tail].rect[1]).toBeLessThan(0);
+    // 同样一段时间里，思考时尾巴转过的角度变化更大
+    const swing = (thinking: boolean) => {
+      const pet = makePet(fake);
+      pet.agentMood = thinking ? 'thinking' : 'idle';
+      let total = 0;
+      let prev = computePose(pet, fake).parts[tail].rot;
+      for (let i = 0; i < 60; i++) {
+        pet.t += 1 / 60;
+        const rot = computePose(pet, fake).parts[tail].rot;
+        total += Math.abs(rot - prev);
+        prev = rot;
+      }
+      return total;
+    };
+    expect(swing(true)).toBeGreaterThan(swing(false) * 2);
+  });
+});

@@ -885,7 +885,7 @@ function faceFor(pet: Pet): Expression {
  * 有关节的部件：
  * - 手臂：上面的动作都是按 Clawd 的小短手写的"手往上抬几格、往外伸几格"，
  *   这里换算成绕肩膀的角度（抬 3 格 ≈ 举过头顶），平移清零。这样拟人角色不用另写一套动作。
- * - 带 sway 的部件（尾巴、耳朵、呆毛）：自己慢慢晃，走路晃得快，飞在空中往后甩。
+ * - 带 sway 的部件（尾巴、耳朵、呆毛）：自己慢慢晃，走路、AI 思考时晃得快，飞在空中往后甩。
  */
 function jointPoses(pet: Pet, skin: Skin, parts: PartPose[]) {
   const v = pet.mode === 'held' ? pet.holdVel ?? pet.vel : pet.vel;
@@ -904,7 +904,8 @@ function jointPoses(pet: Pet, skin: Skin, parts: PartPose[]) {
     }
     if (part.sway) {
       const { amp, speed = 0.5, phase = 0 } = part.sway;
-      const rate = pet.mode === 'walk' ? 2.5 : 1;
+      // 走路晃得快；AI 在思考时甩得更快（DeepSeek Harness 思考时那条尾巴就是这么甩的）
+      const rate = pet.mode === 'walk' ? 2.5 : pet.agentMood === 'thinking' ? 4 : 1;
       const deg = amp * Math.sin((pet.t * speed * rate + phase) * Math.PI * 2) + amp * 1.5 * drag;
       pp.rot += (deg * Math.PI) / 180;
     }

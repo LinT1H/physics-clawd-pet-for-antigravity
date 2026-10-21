@@ -117,7 +117,8 @@ describe('皮肤注册表', () => {
 describe.each(SKINS.map((s) => [s.id, s] as const))('皮肤 %s', (_id, skin) => {
   it('部件都在网格里，有身体和腿', () => {
     const [gw, gh] = skin.grid;
-    for (const p of skin.parts) {
+    // 会晃的装饰（比如 Clawd? 的尾巴）可以伸出碰撞盒，别的部件都要在网格里
+    for (const p of skin.parts.filter((q) => !q.sway)) {
       const [x, y, w, h] = p.rect;
       expect(x >= 0 && y >= 0 && x + w <= gw && y + h <= gh, p.id).toBe(true);
     }

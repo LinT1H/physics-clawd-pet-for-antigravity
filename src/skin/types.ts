@@ -115,7 +115,7 @@ export interface Skin extends Omit<SkinDef, 'parts' | 'render' | 'actions'> {
   actions: Activity[];
   /** 躯干缩放锚点（身体底边中点），网格坐标 */
   torsoAnchor: { x: number; y: number };
-  /** 所有 body 部件合起来的包围盒（帽子之类也算身体），网格坐标 */
+  /** body 部件合起来的包围盒（帽子之类也算身体，会晃的装饰不算），网格坐标 */
   bodyBox: { x: number; y: number; w: number; h: number };
   /** 眼睛部件的包围盒，没有眼睛为 null。腮红、吃金币的嘴都按它定位 */
   eyeBox: { x: number; y: number; w: number; h: number } | null;
@@ -220,7 +220,9 @@ export function loadSkin(def: SkinDef): Skin {
     return { ...p, side, order: peers.indexOf(p), rgba: parseHex(hex), hex, ...(bitmap ? { bitmap } : {}) };
   });
 
-  const bodyBox = boxOf(def.parts.filter((p) => p.role === 'body')) ?? { x: 0, y: 0, w: gw, h: gh };
+  // 会晃的装饰（尾巴、耳朵、呆毛）不算身体轮廓：不然躯干的缩放锚点、举牌子的高度都会被它带偏
+  const torsoParts = def.parts.filter((p) => p.role === 'body' && !p.sway);
+  const bodyBox = boxOf(torsoParts.length ? torsoParts : def.parts.filter((p) => p.role === 'body')) ?? { x: 0, y: 0, w: gw, h: gh };
   const eyeBox = boxOf(def.parts.filter((p) => p.role === 'eye'));
   const torsoAnchor = { x: bodyBox.x + bodyBox.w / 2, y: bodyBox.y + bodyBox.h };
 
