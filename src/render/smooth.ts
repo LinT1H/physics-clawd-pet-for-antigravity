@@ -50,7 +50,7 @@ export function layoutItems(skin: Skin, pose: Pose): Item[] {
   };
   skin.parts.forEach((part, i) => {
     const [x, y, w, h] = part.rect;
-    add(x, y, w, h, pose.parts[i], part.role !== 'leg', ((part.rot ?? 0) * Math.PI) / 180, part, part.rgba);
+    add(x, y, w, h, pose.parts[i], part.role !== 'leg' && !part.anchored, ((part.rot ?? 0) * Math.PI) / 180, part, part.rgba);
   });
   const none = { dx: 0, dy: 0, sx: 1, sy: 1 };
   for (const p of pose.props) add(p.x, p.y, p.w, p.h, none, !!p.torso, 0, null, p.rgba, !!p.soft);
