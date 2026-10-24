@@ -156,7 +156,7 @@ fn install_into(path: &Path, exe: &Path, token: &str, permission: bool) -> Resul
 pub fn install(token: &str, permission: bool) -> Result<(), String> {
     let path = settings_path().ok_or("Could not find Antigravity config folder")?;
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
-    install_into(&path, &exe, token)
+    install_into(&path, &exe, token, permission)
 }
 
 /// 对外暴露的关闭联动方法：从 hooks.json 中安全移除 "clawd-pet" 节点，绝不误删用户其他钩子
