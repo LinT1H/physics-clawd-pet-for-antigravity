@@ -19,6 +19,9 @@ import {
   loadAssistant,
   pickIcsFile,
   saveAssistant,
+  antigravityInstall,
+  antigravityStatus,
+  antigravityUninstall,
 } from '../platform/host';
 import { dayLabel, hhmm, pick } from './i18n';
 import { type AssistantData, type CalendarSource, type Todo, dueTime, newId, sanitizeAssistant } from './model';
@@ -331,6 +334,8 @@ async function main() {
     claude: { status: ccStatus, install: ccInstall, uninstall: ccUninstall },
     codex: { status: codexStatus, install: codexInstall, uninstall: codexUninstall },
     dsh: { status: dshStatus, install: dshInstall, uninstall: dshUninstall },
+    // 绑定 Antigravity 对应的前后端调用
+    antigravity: { status: antigravityStatus, install: antigravityInstall, uninstall: antigravityUninstall },
   };
   let refreshing = 0;
   const permBox = $<HTMLInputElement>('ccPermission');
@@ -406,7 +411,7 @@ async function main() {
 
   providerSelect.onchange = () => {
     const v = providerSelect.value;
-    provider = v === 'codex' || v === 'dsh' ? v : 'claude';
+    provider = v === 'codex' || v === 'dsh' || v === 'antigravity' ? v  : 'claude';
     cc = null;
     permBox.checked = true;
     $<HTMLButtonElement>('ccToggle').disabled = true;

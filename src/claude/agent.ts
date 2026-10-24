@@ -4,12 +4,14 @@
 import type { AgentMood } from '../engine/pet';
 
 /** 联动对象：Claude Code、Codex、DeepSeek Harness */
-export type AgentProvider = 'claude' | 'codex' | 'dsh';
+export type AgentProvider = 'claude' | 'codex' | 'dsh' | 'antigravity';
 
 /** 把文案里的 "Claude Code" / "Claude" 换成实际联动的那个 */
 export function agentText(text: string, provider?: AgentProvider): string {
   if (provider === 'codex') return text.replace(/Claude(?: Code)?/g, 'Codex');
   if (provider === 'dsh') return text.replace(/Claude(?: Code)?/g, 'DeepSeek');
+  // 当联动对象为 Antigravity 时，气泡文案动态替换为 Antigravity
+  if (provider === 'antigravity') return text.replace(/Claude(?:Code)?/g, 'Antigravity');
   return text;
 }
 
@@ -58,8 +60,8 @@ export type Reaction =
   /**
    * 这个会话往前走了：挂着的权限请求肯定已经处理过了。
    * 带 tool 的只说明这一个工具跑完了（并行的其他工具可能还在等批准）
-   */
-  | { kind: 'progress'; session: string; tool_name?: string; tool?: string };
+      */
+    | { kind: 'progress'; session: string; tool_name?: string; tool?: string };
 
 interface Session {
   provider?: AgentProvider;

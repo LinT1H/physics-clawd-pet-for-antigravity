@@ -29,7 +29,7 @@
           <button id="clearDone" type="button" data-t="clearDone"></button>
         </details>
       </section>
-
+    
       <section id="tab-calendar" hidden>
         <h2 data-t="sources"></h2>
         <ul id="sourceList" class="list"></ul>
@@ -43,18 +43,18 @@
           <button id="refresh" type="button" data-t="refresh"></button>
         </div>
         <p class="hint" data-t="urlHint"></p>
-
+    
         <h2 data-t="calSettings"></h2>
         <div class="settings">
           <label><span data-t="leadMin"></span> <input id="leadMin" type="number" min="0" max="120" /> <span data-t="minutes"></span></label>
           <label><span data-t="refreshMin"></span> <input id="refreshMin" type="number" min="5" max="1440" /> <span data-t="minutes"></span></label>
           <label><span data-t="allDayHour"></span> <select id="allDayHour"></select></label>
         </div>
-
+    
         <h2 data-t="upcoming"></h2>
         <div id="upcoming"></div>
       </section>
-
+    
       <section id="tab-remind" hidden>
         <h2><label class="switch"><input id="chimeOn" type="checkbox" /> <span data-t="chime"></span></label></h2>
         <div class="settings">
@@ -62,7 +62,7 @@
           <label><span data-t="chimeTo"></span> <select id="chimeTo"></select></label>
         </div>
         <p class="hint" data-t="chimeHint"></p>
-
+    
         <h2><label class="switch"><input id="restOn" type="checkbox" /> <span data-t="rest"></span></label></h2>
         <div class="settings">
           <label><span data-t="workMin"></span> <input id="workMin" type="number" min="5" max="240" /> <span data-t="minutes"></span></label>
@@ -70,7 +70,7 @@
           <label><span data-t="repeatMin"></span> <input id="repeatMin" type="number" min="1" max="120" /> <span data-t="minutes"></span></label>
         </div>
         <p id="activeNow" class="hint"></p>
-
+    
         <h2 data-t="tryIt"></h2>
         <div class="row-actions">
           <button type="button" data-test="chime" data-t="testChime"></button>
@@ -79,10 +79,15 @@
           <button type="button" data-test="todo" data-t="testTodo"></button>
         </div>
       </section>
-
+    
       <section id="tab-claude" hidden>
         <label class="switch"><span data-t="ccProvider"></span>
-          <select id="ccProvider"><option value="claude">Claude Code</option><option value="codex">Codex</option><option value="dsh">DeepSeek Harness</option></select>
+          <select id="ccProvider">
+          <option value="claude">Claude Code</option>
+          <option value="codex">Codex</option>
+          <option value="dsh">DeepSeek Harness</option>
+          <option value="antigravity">Antigravity</option>
+          </select>
         </label>
         <h2 id="ccLink" data-t="ccLink"></h2>
         <p id="ccState" class="cc-state"></p>
@@ -91,7 +96,7 @@
         </div>
         <label class="switch cc-perm"><input id="ccPermission" type="checkbox" /> <span data-t="ccPermission"></span></label>
         <p id="ccHint" class="hint"></p>
-
+    
         <h2 data-t="ccReactions"></h2>
         <div class="settings">
           <label class="switch"><input id="ccCelebrate" type="checkbox" /> <span data-t="ccCelebrate"></span></label>
@@ -99,11 +104,11 @@
           <label class="switch"><input id="ccZap" type="checkbox" /> <span data-t="ccZap"></span></label>
           <label class="switch"><input id="ccMinis" type="checkbox" /> <span data-t="ccMinis"></span></label>
         </div>
-
+    
         <h2 data-t="ccSessions"></h2>
         <ul id="ccSessions" class="list"></ul>
         <p id="ccNoSessions" class="empty" data-t="ccNoSessions"></p>
-
+    
         <h2 data-t="tryIt"></h2>
         <div class="row-actions">
           <button type="button" data-cc-test="think" data-t="ccTestThink"></button>

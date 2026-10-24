@@ -7,6 +7,7 @@ use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent}
 use tauri::utils::config::BackgroundThrottlingPolicy;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
+mod antigravity;
 mod assist;
 mod claude;
 mod codex;
@@ -26,6 +27,10 @@ pub fn cli(args: &[String]) -> Option<i32> {
     if args.iter().any(|a| a == "--clawd-pet-hook" || a == codex::MARKER) {
         return Some(claude::hook_main(args));
     }
+    // Antigravity 专用钩子入口：由 Antigravity 触发，转交 antigravity 模块处理
+    if args.iter().any(|a| a == antigravity::MARKER) {
+        return Some(antigravity::hook_main(args));
+    }
     if args.iter().any(|a| a == "--remove-claude-hooks") {
         // 卸载程序调用：把装进 Claude Code 设置里的 hooks 删掉
         return Some(if claude::uninstall().is_ok() { 0 } else { 1 });
@@ -35,6 +40,10 @@ pub fn cli(args: &[String]) -> Option<i32> {
     }
     if args.iter().any(|a| a == "--remove-dsh-plugin") {
         return Some(if dsh::uninstall().is_ok() { 0 } else { 1 });
+    }
+    // 卸载程序调用：从 ~/.gemini/config/hooks.json 中清理本桌宠的钩子
+    if args.iter().any(|a| a == "--remove-antigravity-hooks") {
+        return Some(if antigravity::uninstall().is_ok() { 0 } else { 1 });
     }
     None
 }
@@ -338,6 +347,31 @@ fn dsh_uninstall() -> Result<(), String> {
     dsh::uninstall()
 }
 
+// ---------- Antigravity / agy (Gemini) 联动接口 ----------
+
+/// 查询 Antigravity 的当前联动状态（供前端小助手面板显示）
+#[tauri::command]
+fn antigravity_status(bridge: State<Arc<claude::Bridge>>, token: State<BridgeToken>) -> CcStatus {
+    CcStatus {
+        hooks: antigravity::status(&token.0),
+        port: claude::PORT,
+        bridge_error: bridge.error.lock().unwrap().clone(),
+        last_event: bridge.last_event.load(std::sync::atomic::Ordering::Relaxed),
+    }
+}
+
+/// 开启 Antigravity 联动：向 ~/.gemini/config/hooks.json 注入钩子条目
+#[tauri::command]
+fn antigravity_install(token: State<BridgeToken>, permission: bool) -> Result<(), String> {
+    antigravity::install(&token.0, permission)
+}
+
+/// 关闭 Antigravity 联动：从 ~/.gemini/config/hooks.json 中安全移除桌宠条目
+#[tauri::command]
+fn antigravity_uninstall() -> Result<(), String> {
+    antigravity::uninstall()
+}
+
 /// 权限气泡上的按钮：allow / deny / pass（交还终端）
 #[tauri::command]
 fn cc_decide(bridge: State<Arc<claude::Bridge>>, id: u64, behavior: String) -> bool {
@@ -625,6 +659,9 @@ pub fn run() {
             dsh_status,
             dsh_install,
             dsh_uninstall,
+            antigravity_status,
+            antigravity_install,
+            antigravity_uninstall,
             cc_decide
         ])
         .setup(|app| {
@@ -644,6 +681,11 @@ pub fn run() {
             let st = dsh::status(&token);
             if st.installed && !st.current {
                 let _ = dsh::install(&token, st.permission);
+            }
+            // Antigravity 联动：若用户之前开启过联动，但程序换了路径或 Token，则自动热更新 hooks.json
+            let st = antigravity::status(&token);
+            if st.installed && !st.current {
+                let _ = antigravity::install(&token, st.permission);
             }
             app.manage(bridge);
             app.manage(BridgeToken(token));

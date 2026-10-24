@@ -260,9 +260,9 @@ export interface ScreenInfo extends Bounds {
  * remap：覆盖层跟着挪了，之前的坐标要换算成新的：新 = 旧 × k + (dx, dy)；null = 不用换算。
  */
 export interface ScreensMsg {
-  screens: ScreenInfo[];
-  remap: { k: number; dx: number; dy: number } | null;
-  revision?: number;
+    screens: ScreenInfo[];
+    remap: { k: number; dx: number; dy: number } | null;
+    revision?: number;
 }
 
 /** 被追踪窗口的一次位置采样（覆盖层 CSS 像素） */
@@ -282,28 +282,28 @@ export interface CarrierSample {
  * 只在有变化时推送事件；浏览器预览下退化为页面内的光标，没有窗口平台。
  */
 export interface OverlayHost {
-  /** 最近一次已知的光标位置（覆盖层 CSS 坐标），未知为 null */
-  cursor(): Vec2 | null;
-  /** 光标是否在宠物上（此时覆盖层不穿透，可以抓） */
-  hovering(): boolean;
-  /** 可点击区域：第一个是宠物，后面是气泡之类；和上次一样就不发 */
-  setHitRects(list: HitRect[]): void;
-  setDragging(on: boolean): void;
-  /** 开始/停止高频追踪某个窗口（宠物脚下那个） */
-  setCarrier(id: number | null): void;
-  onPlatforms(cb: (list: Platform[]) => void): void;
-  /** 宠物能去的屏幕；挂上监听后马上（或者 ready() 之后）会收到一次 */
-  onScreens(cb: (msg: ScreensMsg) => void): void;
-  onCarrier(cb: (s: CarrierSample) => void): void;
-  onDnd(cb: (hidden: boolean, reason: string) => void): void;
-  /** 当前有键盘焦点的文本输入框（覆盖层 CSS 像素），没有为 null */
-  onInput(cb: (zone: Bounds | null) => void): void;
-  /** 与 CarrierSample.t 同一时钟的"现在"（ms） */
-  clock(): number;
-  /** 监听都挂好了，请求原生侧把当前状态全部推一遍 */
-  ready(): void;
-  /** 托盘"形象"菜单：可选的皮肤和当前选中的那个 */
-  setSkins(list: SkinInfo[], current: string): void;
+    /** 最近一次已知的光标位置（覆盖层 CSS 坐标），未知为 null */
+    cursor(): Vec2 | null;
+    /** 光标是否在宠物上（此时覆盖层不穿透，可以抓） */
+    hovering(): boolean;
+    /** 可点击区域：第一个是宠物，后面是气泡之类；和上次一样就不发 */
+    setHitRects(list: HitRect[]): void;
+    setDragging(on: boolean): void;
+    /** 开始/停止高频追踪某个窗口（宠物脚下那个） */
+    setCarrier(id: number | null): void;
+    onPlatforms(cb: (list: Platform[]) => void): void;
+    /** 宠物能去的屏幕；挂上监听后马上（或者 ready() 之后）会收到一次 */
+    onScreens(cb: (msg: ScreensMsg) => void): void;
+    onCarrier(cb: (s: CarrierSample) => void): void;
+    onDnd(cb: (hidden: boolean, reason: string) => void): void;
+    /** 当前有键盘焦点的文本输入框（覆盖层 CSS 像素），没有为 null */
+    onInput(cb: (zone: Bounds | null) => void): void;
+    /** 与 CarrierSample.t 同一时钟的"现在"（ms） */
+    clock(): number;
+    /** 监听都挂好了，请求原生侧把当前状态全部推一遍 */
+    ready(): void;
+    /** 托盘"形象"菜单：可选的皮肤和当前选中的那个 */
+    setSkins(list: SkinInfo[], current: string): void;
 }
 
 export interface SkinInfo {
@@ -417,4 +417,30 @@ export async function createOverlayHost(): Promise<OverlayHost> {
     ready: () => void invoke('desk_ready'),
     setSkins: (list, current) => void invoke('tray_set_skins', { skins: list, current }),
   };
+}
+
+// ---------- Antigravity  (Gemini) 联动调用 ----------
+
+// 查询 Antigravity 钩子安装状态
+export async function antigravityStatus(): Promise<CcStatus> {
+  if (!isTauri) {
+    const status = await ccStatus();
+    return { ...status, hooks: { ...status.hooks, settings_path: '~/.gemini/config/hooks.json' } };
+  }
+  const { invoke } = await import('@tauri-apps/api/core');
+  return invoke<CcStatus>('antigravity_status');
+}
+
+// 开启 Antigravity 联动：向 hooks.json 注入钩子
+export async function antigravityInstall(permission: boolean): Promise<void> {
+  if (!isTauri) throw new Error(PREVIEW_NO_LINK());
+  const { invoke } = await import('@tauri-apps/api/core');
+  await invoke('antigravity_install', { permission });
+}
+
+// 关闭 Antigravity 联动：从 hooks.json 中移除钩子
+export async function antigravityUninstall(): Promise<void> {
+  if (!isTauri) return;
+  const { invoke } = await import('@tauri-apps/api/core');
+  await invoke('antigravity_uninstall');
 }
