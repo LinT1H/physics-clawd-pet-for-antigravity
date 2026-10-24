@@ -370,7 +370,7 @@ async function main() {
     toggle.textContent = h.installed ? (h.current ? W.ccDisable : W.ccReinstall) : W.ccEnable;
     toggle.className = h.installed && h.current ? '' : 'primary';
     toggle.disabled = !!cc.bridge_error && !h.installed;
-    $('ccHint').textContent = (provider === 'codex' ? W.codexHint : provider === 'dsh' ? W.dshHint : W.ccHint)(h.settings_path);
+    $('ccHint').textContent = linkText((provider === 'codex' ? W.codexHint : provider === 'dsh' ? W.dshHint : W.ccHint)(h.settings_path));
     const permLabel = permBox.parentElement?.querySelector('span');
     if (permLabel) permLabel.textContent = linkText(W.ccPermission);
 

@@ -84,12 +84,12 @@ fn write(path: &Path, settings: Map<String, Value>) -> Result<(), String> {
 
 /// 生成注入到 Antigravity hooks.json 中的单条调用命令
 fn hook_cmd(exe: &Path, token: &str, event: &str) -> String {
-    format!("\"{}\" {} {} {} {}", exe.display(), MARKER, PORT, token, event)
+    format!("{} {} {} {} {}", exe.display(), MARKER, PORT, token, event)
 }
 
 /// 【策略下发】向 Antigravity hooks.json 注入桌宠监听配置
 /// 保留用户已有的其他钩子（如 oil-codex-title），仅新增或覆盖 "clawd-pet" 条目
-fn install_into(path: &Path, exe: &Path, token: &str) -> Result<(), String> {
+fn install_into(path: &Path, exe: &Path, token: &str, permission: bool) -> Result<(), String> {
     let mut settings = read(path)?;
     
     // PreToolUse 钩子（工具调用前）：桌宠开始敲笔记本电脑码字，或召唤子智能体
@@ -105,7 +105,7 @@ fn install_into(path: &Path, exe: &Path, token: &str) -> Result<(), String> {
             ]
         }
     ]);
-
+    
     // PostToolUse 钩子（工具调用后）：成功则继续，报错则让桌宠触电
     let post_tool = json!([
         {
@@ -119,7 +119,7 @@ fn install_into(path: &Path, exe: &Path, token: &str) -> Result<(), String> {
             ]
         }
     ]);
-
+    
     // PreInvocation 钩子（思考开始）：用户发消息后，桌宠头上冒出“…”气泡进入思考
     let pre_invoc = json!([
         {
@@ -128,7 +128,7 @@ fn install_into(path: &Path, exe: &Path, token: &str) -> Result<(), String> {
             "timeout": 5
         }
     ]);
-
+    
     // Stop 钩子（轮次结束）：本轮任务完成，桌宠侧手翻落地、撒彩带庆祝
     let stop = json!([
         {
@@ -137,22 +137,23 @@ fn install_into(path: &Path, exe: &Path, token: &str) -> Result<(), String> {
             "timeout": 5
         }
     ]);
-
+    
     // 组合为 Antigravity 认可的标准策略结构
     let pet_entry = json!({
         "enabled": true,
+        "permission": permission,
         "PreInvocation": pre_invoc,
         "PreToolUse": pre_tool,
         "PostToolUse": post_tool,
         "Stop": stop
     });
-
+    
     settings.insert("clawd-pet".into(), pet_entry);
     write(path, settings)
 }
 
 /// 对外暴露的开启联动方法：定位路径并安装配置
-pub fn install(token: &str, _permission: bool) -> Result<(), String> {
+pub fn install(token: &str, permission: bool) -> Result<(), String> {
     let path = settings_path().ok_or("Could not find Antigravity config folder")?;
     let exe = std::env::current_exe().map_err(|e| e.to_string())?;
     install_into(&path, &exe, token)
@@ -194,9 +195,11 @@ fn status_at(path: &Path, exe: &Path, token: &str) -> HookStatus {
         return st;
     }
     st.installed = true;
-
+	// 读取保存的权限开关状态，让前端复选框正常显示勾选
+    st.permission = entry.get("permission").and_then(Value::as_bool).unwrap_or(false);
+    
     // 检查钩子里的命令是否匹配当前的 exe 路径和 Token（如果软件移动了目录，会标记 current=false 自动重新下发）
-    let expected_cmd = format!("\"{}\" {} {} {}", exe.display(), MARKER, PORT, token);
+    let expected_cmd = format!("{} {} {} {}", exe.display(), MARKER, PORT, token);
     let mut found_expected = false;
     if let Some(list) = entry.get("Stop").and_then(Value::as_array) {
         for h in list {
@@ -244,7 +247,7 @@ pub fn hook_main(args: &[String]) -> i32 {
             println!("{{}}");
         }
     };
-
+    
     // 从标准输入（stdin）读取 Antigravity 传递进来的上下文报文（最大 16MB 保护）
     let mut input = String::new();
     let _ = std::io::stdin().take(16 * 1024 * 1024).read_to_string(&mut input);
@@ -252,12 +255,12 @@ pub fn hook_main(args: &[String]) -> i32 {
         respond_ok();
         return 0;
     };
-
+    
     // 清洗报文并附加上 Token 与当前调用链的祖先进程 PID（用于桌宠定位前台窗口）
     let mut msg = summarize(&v, event_type);
     msg.insert("token".into(), Value::String(token));
     msg.insert("ancestors".into(), json!(platform::ancestor_pids()));
-
+    
     // 建立本机 TCP Socket 连接，向运行中的桌宠主进程（47326端口）投递事件
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     if let Ok(mut stream) = TcpStream::connect_timeout(&addr, Duration::from_millis(400)) {
@@ -269,7 +272,7 @@ pub fn hook_main(args: &[String]) -> i32 {
         let mut reply = String::new();
         let _ = BufReader::new(&stream).take(256 * 1024).read_line(&mut reply);
     }
-
+    
     // 响应 Antigravity 规范，正常退出
     respond_ok();
     0
@@ -291,15 +294,15 @@ pub fn summarize(v: &Value, event_arg: &str) -> Map<String, Value> {
         .and_then(|a| a.first())
         .and_then(Value::as_str)
         .unwrap_or("");
-
+    
     put("provider", json!("antigravity"));
     put("session_id", json!(cid));
     put("cwd", json!(cwd));
     put("t", json!(now_ms()));
-
+    
     let tool_call = v.get("toolCall");
     let tool_name = tool_call.and_then(|t| t.get("name")).and_then(Value::as_str);
-
+    
     // 根据 Antigravity 的触发点转换桌宠行为
     match event_arg {
         "PreInvocation" => {
@@ -356,7 +359,7 @@ pub fn summarize(v: &Value, event_arg: &str) -> Map<String, Value> {
             put("event", json!(event_arg));
         }
     }
-
+    
     m
 }
 

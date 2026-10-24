@@ -11,7 +11,7 @@ export function agentText(text: string, provider?: AgentProvider): string {
   if (provider === 'codex') return text.replace(/Claude(?: Code)?/g, 'Codex');
   if (provider === 'dsh') return text.replace(/Claude(?: Code)?/g, 'DeepSeek');
   // 当联动对象为 Antigravity 时，气泡文案动态替换为 Antigravity
-  if (provider === 'antigravity') return text.replace(/Claude(?:Code)?/g, 'Antigravity');
+  if (provider === 'antigravity') return text.replace(/Claude(?: Code)?/g, 'Antigravity');
   return text;
 }
 
