@@ -1,0 +1,200 @@
+{
+  "id": "clawd-gemini",
+  "name": "Clawd & Gemini",
+  "description": "头顶趴着紫色真绒毛猫耳 Gemini 娘的 Clawd（同人限定形象）",
+  "grid": [16, 10],
+  "render": "smooth",
+  "palette": {
+    "clawd": "#D77757",
+    "clawd_eye": "#141413",
+    "gemini_violet": "#7C3AED",
+    "gemini_lavender": "#A78BFA",
+    "gemini_skin": "#FDE2D3",
+    "gemini_blush": "#F472B6",
+    "fur_purple": "#8B5CF6",
+    "star_gold": "#FDE047"
+  },
+  "actions": [
+    "laptop",
+    "coin",
+    "shake"
+  ],
+  "parts": [
+    {
+      "id": "leg0",
+      "role": "leg",
+      "rect": [3, 8, 1, 2],
+      "color": "clawd",
+      "shape": "rect"
+    },
+    {
+      "id": "leg1",
+      "role": "leg",
+      "rect": [5, 8, 1, 2],
+      "color": "clawd",
+      "shape": "rect"
+    },
+    {
+      "id": "leg2",
+      "role": "leg",
+      "rect": [10, 8, 1, 2],
+      "color": "clawd",
+      "shape": "rect"
+    },
+    {
+      "id": "leg3",
+      "role": "leg",
+      "rect": [12, 8, 1, 2],
+      "color": "clawd",
+      "shape": "rect"
+    },
+    {
+      "id": "armL",
+      "role": "arm",
+      "rect": [0, 4, 2, 2],
+      "color": "clawd",
+      "shape": "rect"
+    },
+    {
+      "id": "armR",
+      "role": "arm",
+      "rect": [14, 4, 2, 2],
+      "color": "clawd",
+      "shape": "rect"
+    },
+    {
+      "id": "body",
+      "role": "body",
+      "rect": [2, 0, 12, 8],
+      "color": "clawd",
+      "shape": "rect"
+    },
+    {
+      "id": "eyeL",
+      "role": "eye",
+      "rect": [3.8, 2.0, 1.4, 2.8],
+      "color": "clawd_eye",
+      "shape": "rect"
+    },
+    {
+      "id": "eyeR",
+      "role": "eye",
+      "rect": [10.8, 2.0, 1.4, 2.8],
+      "color": "clawd_eye",
+      "shape": "rect"
+    },
+    {
+      "id": "gemini_tail",
+      "role": "body",
+      "rect": [12.2, -1.8, 3.2, 2.8],
+      "color": "fur_purple",
+      "shape": "ellipse",
+      "rot": 25,
+      "pivot": [12.2, 0],
+      "sway": {
+        "amp": 16,
+        "speed": 0.8,
+        "phase": 0.5
+      },
+      "fur": {
+        "length": 0.35,
+        "density": 1.5,
+        "curl": 0.3,
+        "light": "#DDD6FE",
+        "shade": "#4C1D95"
+      }
+    },
+    {
+      "id": "gemini_torso",
+      "role": "body",
+      "rect": [3.2, -2.5, 9.6, 3.2],
+      "color": "gemini_violet",
+      "shape": "cloud"
+    },
+    {
+      "id": "gemini_hair_back",
+      "role": "body",
+      "rect": [4.0, -3.2, 8.0, 3.2],
+      "color": "gemini_violet",
+      "shape": "ellipse"
+    },
+    {
+      "id": "gemini_face",
+      "role": "body",
+      "rect": [5.0, -1.8, 6.0, 2.6],
+      "color": "gemini_skin",
+      "shape": "ellipse"
+    },
+    {
+      "id": "gemini_bangs",
+      "role": "body",
+      "rect": [4.8, -2.2, 6.4, 1.6],
+      "color": "gemini_lavender",
+      "shape": "cloud"
+    },
+    {
+      "id": "gemini_pawL",
+      "role": "body",
+      "rect": [3.8, -0.6, 1.8, 1.3],
+      "color": "gemini_skin",
+      "shape": "ellipse"
+    },
+    {
+      "id": "gemini_pawR",
+      "role": "body",
+      "rect": [10.4, -0.6, 1.8, 1.3],
+      "color": "gemini_skin",
+      "shape": "ellipse"
+    },
+    {
+      "id": "gemini_earL",
+      "role": "body",
+      "rect": [3.6, -5.8, 3.2, 4.0],
+      "color": "fur_purple",
+      "shape": "pear",
+      "rot": -12,
+      "pivot": [5.2, -1.8],
+      "sway": {
+        "amp": 14,
+        "speed": 0.9,
+        "phase": 0.0
+      },
+      "fur": {
+        "length": 0.45,
+        "density": 1.8,
+        "curl": 0.2,
+        "light": "#DDD6FE",
+        "shade": "#4C1D95"
+      }
+    },
+    {
+      "id": "gemini_earR",
+      "role": "body",
+      "rect": [9.2, -5.8, 3.2, 4.0],
+      "color": "fur_purple",
+      "shape": "pear",
+      "rot": 12,
+      "pivot": [10.8, -1.8],
+      "sway": {
+        "amp": 14,
+        "speed": 0.9,
+        "phase": 0.3
+      },
+      "fur": {
+        "length": 0.45,
+        "density": 1.8,
+        "curl": 0.2,
+        "light": "#DDD6FE",
+        "shade": "#4C1D95"
+      }
+    },
+    {
+      "id": "gemini_star",
+      "role": "body",
+      "rect": [11.2, -3.8, 1.8, 1.8],
+      "color": "star_gold",
+      "shape": "bow",
+      "rot": 15
+    }
+  ]
+}
